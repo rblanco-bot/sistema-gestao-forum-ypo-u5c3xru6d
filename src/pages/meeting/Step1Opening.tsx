@@ -160,20 +160,28 @@ export default function Step1Opening() {
                           <SelectContent>
                             <SelectItem value="presente">No horário</SelectItem>
                             <SelectItem value="atrasado">Atrasado</SelectItem>
-                            <SelectItem value="saiu_cedo">Saiu Cedo</SelectItem>
+                            <SelectItem value="saida_antecipada">Saída Antecipada</SelectItem>
                             <SelectItem value="ausente">Ausente</SelectItem>
                           </SelectContent>
                         </Select>
-                        {(attendance[m.id] === 'atrasado' || attendance[m.id] === 'saiu_cedo') && (
-                          <Input
-                            type="time"
-                            className="h-8 text-xs w-[100px]"
-                            placeholder={attendance[m.id] === 'atrasado' ? 'Chegada' : 'Saída'}
-                            value={attendanceTimes[m.id] || ''}
-                            onChange={(e) =>
-                              setAttendanceTimes((p) => ({ ...p, [m.id]: e.target.value }))
-                            }
-                          />
+                        {(attendance[m.id] === 'atrasado' ||
+                          attendance[m.id] === 'saida_antecipada') && (
+                          <div className="flex flex-col gap-1">
+                            <Input
+                              type="time"
+                              className="h-8 text-xs w-[100px]"
+                              placeholder={attendance[m.id] === 'atrasado' ? 'Chegada' : 'Saída'}
+                              value={attendanceTimes[m.id] || ''}
+                              onChange={(e) =>
+                                setAttendanceTimes((p) => ({ ...p, [m.id]: e.target.value }))
+                              }
+                            />
+                            <span className="text-[10px] text-slate-500">
+                              {attendance[m.id] === 'atrasado'
+                                ? 'Horário de Chegada'
+                                : 'Horário de Saída'}
+                            </span>
+                          </div>
                         )}
                       </div>
                     </TableCell>
@@ -232,8 +240,140 @@ export default function Step1Opening() {
               ))}
             </CardContent>
           </Card>
+
+          <Card className="border-indigo-100">
+            <CardHeader>
+              <CardTitle className="text-lg text-indigo-900">Roda das Emoções</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <EmotionWheel />
+            </CardContent>
+          </Card>
         </div>
       </div>
+    </div>
+  )
+}
+
+const EMOTIONS = {
+  Alegria: {
+    Otimista: ['Esperançoso', 'Inspirado'],
+    Orgulhoso: ['Realizado', 'Confiante'],
+    Pacífico: ['Amoroso', 'Grato'],
+  },
+  Tristeza: {
+    Solitário: ['Isolado', 'Abandonado'],
+    Vulnerável: ['Frágil', 'Inseguro'],
+    Desespero: ['Angustiado', 'Vazio'],
+  },
+  Raiva: {
+    Frustrado: ['Irritado', 'Impaciente'],
+    Amargo: ['Indignado', 'Ressentido'],
+    Agressivo: ['Provocado', 'Hostil'],
+  },
+  Medo: {
+    Ansioso: ['Preocupado', 'Tenso'],
+    Inseguro: ['Inferior', 'Inadequado'],
+    Assustado: ['Apavorado', 'Pânico'],
+  },
+  Surpresa: {
+    Espantado: ['Chocado', 'Incrédulo'],
+    Confuso: ['Desorientado', 'Perplexo'],
+    Animado: ['Eufórico', 'Energético'],
+  },
+}
+
+function EmotionWheel() {
+  const [level1, setLevel1] = useState<string | null>(null)
+  const [level2, setLevel2] = useState<string | null>(null)
+  const [level3, setLevel3] = useState<string | null>(null)
+
+  const reset = () => {
+    setLevel1(null)
+    setLevel2(null)
+    setLevel3(null)
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-xl border max-w-full mx-auto shadow-inner">
+      <h3 className="text-lg font-bold text-slate-800 mb-6 text-center leading-tight">
+        Como você está se sentindo agora?
+      </h3>
+
+      {level3 ? (
+        <div className="text-center space-y-4 animate-fade-in-up">
+          <div className="p-4 bg-indigo-100 rounded-full w-32 h-32 flex items-center justify-center mx-auto shadow-md border-4 border-indigo-200">
+            <span className="text-xl font-bold text-indigo-800">{level3}</span>
+          </div>
+          <p className="text-xs text-slate-500 font-medium">
+            {level1} &gt; {level2} &gt; {level3}
+          </p>
+          <Button variant="outline" size="sm" onClick={reset}>
+            Começar de novo
+          </Button>
+        </div>
+      ) : level2 ? (
+        <div className="w-full animate-fade-in">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setLevel2(null)}
+            className="mb-4 text-slate-500 hover:text-slate-800"
+          >
+            &larr; Voltar
+          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            {EMOTIONS[level1 as keyof typeof EMOTIONS][
+              level2 as keyof (typeof EMOTIONS)[keyof typeof EMOTIONS]
+            ].map((e) => (
+              <Button
+                key={e}
+                variant="outline"
+                className="h-12 text-sm bg-white hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200"
+                onClick={() => setLevel3(e)}
+              >
+                {e}
+              </Button>
+            ))}
+          </div>
+        </div>
+      ) : level1 ? (
+        <div className="w-full animate-fade-in">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setLevel1(null)}
+            className="mb-4 text-slate-500 hover:text-slate-800"
+          >
+            &larr; Voltar
+          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            {Object.keys(EMOTIONS[level1 as keyof typeof EMOTIONS]).map((e) => (
+              <Button
+                key={e}
+                variant="outline"
+                className="h-12 text-sm bg-white hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200"
+                onClick={() => setLevel2(e)}
+              >
+                {e}
+              </Button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 w-full animate-fade-in">
+          {Object.keys(EMOTIONS).map((e) => (
+            <Button
+              key={e}
+              variant="default"
+              className="h-12 text-sm bg-indigo-600 hover:bg-indigo-700 shadow-sm"
+              onClick={() => setLevel1(e)}
+            >
+              {e}
+            </Button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

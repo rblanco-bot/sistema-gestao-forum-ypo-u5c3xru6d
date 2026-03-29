@@ -214,7 +214,7 @@ END:VCALENDAR`
                 const status = attendance[m.id] || 'presente'
                 let statusLabel = 'No horário'
                 if (status === 'atrasado') statusLabel = 'Atrasado'
-                if (status === 'saiu_cedo') statusLabel = 'Saiu Cedo'
+                if (status === 'saida_antecipada') statusLabel = 'Saída Antecipada'
                 if (status === 'ausente') statusLabel = 'Ausente'
                 return (
                   <tr key={m.id} className="border-b border-slate-100">
