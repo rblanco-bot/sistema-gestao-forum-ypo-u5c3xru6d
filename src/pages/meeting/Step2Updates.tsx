@@ -128,7 +128,7 @@ export default function Step2Updates() {
                     className="py-4"
                   />
                   <div className="flex justify-between text-xs text-slate-400 font-medium">
-                    <span>0 (Superficial)</span>
+                    <span>0 (Não mencionado)</span>
                     <span>3 (Muito Profundo)</span>
                   </div>
                 </div>

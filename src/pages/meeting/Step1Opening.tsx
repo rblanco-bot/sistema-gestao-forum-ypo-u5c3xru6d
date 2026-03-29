@@ -19,12 +19,23 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
 import useMeetingStore from '@/stores/useMeetingStore'
 import { MEMBERS, ICEBREAKERS } from '@/lib/mock'
 
 export default function Step1Opening() {
-  const { roles, setRoles, attendance, setAttendance, usedIcebreakers, setUsedIcebreakers } =
-    useMeetingStore()
+  const {
+    roles,
+    setRoles,
+    attendance,
+    setAttendance,
+    usedIcebreakers,
+    setUsedIcebreakers,
+    meetingDetails,
+    setMeetingDetails,
+    attendanceTimes,
+    setAttendanceTimes,
+  } = useMeetingStore()
   const [icebreaker, setIcebreaker] = useState<(typeof ICEBREAKERS)[0] | null>(null)
 
   const handleShuffle = () => {
@@ -66,27 +77,64 @@ export default function Step1Opening() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-3 gap-4">
-              {['Timekeeper', 'Processador', 'Anotador'].map((role) => (
-                <div key={role} className="space-y-2">
-                  <Label className="text-xs text-slate-500 uppercase">{role}</Label>
-                  <Select
-                    value={roles[role] || ''}
-                    onValueChange={(v) => setRoles((p) => ({ ...p, [role]: v }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MEMBERS.map((m) => (
-                        <SelectItem key={m.id} value={m.id}>
-                          {m.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))}
+            <div className="grid grid-cols-2 md:grid-cols-2 gap-4 border-b pb-6">
+              <div className="space-y-2">
+                <Label className="text-xs text-slate-500 uppercase">Data</Label>
+                <Input
+                  type="date"
+                  value={meetingDetails.date}
+                  onChange={(e) => setMeetingDetails((p) => ({ ...p, date: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs text-slate-500 uppercase">Local</Label>
+                <Input
+                  placeholder="Sede YPO..."
+                  value={meetingDetails.location}
+                  onChange={(e) => setMeetingDetails((p) => ({ ...p, location: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs text-slate-500 uppercase">Início</Label>
+                <Input
+                  type="time"
+                  value={meetingDetails.startTime}
+                  onChange={(e) => setMeetingDetails((p) => ({ ...p, startTime: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs text-slate-500 uppercase">Término (Previsto)</Label>
+                <Input
+                  type="time"
+                  value={meetingDetails.endTime}
+                  onChange={(e) => setMeetingDetails((p) => ({ ...p, endTime: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {['Moderador', 'Vice-Moderador', 'Timekeeper', 'Processador', 'Anotador'].map(
+                (role) => (
+                  <div key={role} className="space-y-2">
+                    <Label className="text-xs text-slate-500 uppercase">{role}</Label>
+                    <Select
+                      value={roles[role] || ''}
+                      onValueChange={(v) => setRoles((p) => ({ ...p, [role]: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MEMBERS.map((m) => (
+                          <SelectItem key={m.id} value={m.id}>
+                            {m.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ),
+              )}
             </div>
 
             <Table>
@@ -101,19 +149,33 @@ export default function Step1Opening() {
                   <TableRow key={m.id}>
                     <TableCell className="font-medium">{m.name}</TableCell>
                     <TableCell>
-                      <Select
-                        value={attendance[m.id] || 'presente'}
-                        onValueChange={(v) => setAttendance((p) => ({ ...p, [m.id]: v }))}
-                      >
-                        <SelectTrigger className="w-[140px] h-8 text-xs">
-                          <SelectValue placeholder="Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="presente">No horário</SelectItem>
-                          <SelectItem value="atrasado">Atrasado</SelectItem>
-                          <SelectItem value="ausente">Ausente</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <Select
+                          value={attendance[m.id] || 'presente'}
+                          onValueChange={(v) => setAttendance((p) => ({ ...p, [m.id]: v }))}
+                        >
+                          <SelectTrigger className="w-[140px] h-8 text-xs shrink-0">
+                            <SelectValue placeholder="Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="presente">No horário</SelectItem>
+                            <SelectItem value="atrasado">Atrasado</SelectItem>
+                            <SelectItem value="saiu_cedo">Saiu Cedo</SelectItem>
+                            <SelectItem value="ausente">Ausente</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {(attendance[m.id] === 'atrasado' || attendance[m.id] === 'saiu_cedo') && (
+                          <Input
+                            type="time"
+                            className="h-8 text-xs w-[100px]"
+                            placeholder={attendance[m.id] === 'atrasado' ? 'Chegada' : 'Saída'}
+                            value={attendanceTimes[m.id] || ''}
+                            onChange={(e) =>
+                              setAttendanceTimes((p) => ({ ...p, [m.id]: e.target.value }))
+                            }
+                          />
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

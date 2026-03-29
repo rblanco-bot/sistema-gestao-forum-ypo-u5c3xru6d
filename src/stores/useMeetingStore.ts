@@ -24,9 +24,20 @@ type PresentationData = {
   cleared: boolean
 }
 
+type MeetingDetails = {
+  date: string
+  location: string
+  startTime: string
+  endTime: string
+}
+
 type MeetingContextType = {
+  meetingDetails: MeetingDetails
+  setMeetingDetails: React.Dispatch<React.SetStateAction<MeetingDetails>>
   attendance: Record<string, string>
   setAttendance: React.Dispatch<React.SetStateAction<Record<string, string>>>
+  attendanceTimes: Record<string, string>
+  setAttendanceTimes: React.Dispatch<React.SetStateAction<Record<string, string>>>
   roles: Record<string, string>
   setRoles: React.Dispatch<React.SetStateAction<Record<string, string>>>
   updates: Record<string, MemberUpdates>
@@ -37,6 +48,8 @@ type MeetingContextType = {
   setPresentations: React.Dispatch<React.SetStateAction<PresentationData[]>>
   usedIcebreakers: string[]
   setUsedIcebreakers: React.Dispatch<React.SetStateAction<string[]>>
+  processorFeedback: string
+  setProcessorFeedback: React.Dispatch<React.SetStateAction<string>>
   resetMeeting: () => void
 }
 
@@ -52,8 +65,19 @@ export const MeetingProvider = ({ children }: { children: React.ReactNode }) => 
     }
   }
 
+  const [meetingDetails, setMeetingDetails] = useState<MeetingDetails>(() =>
+    init('ypo_meeting_details', {
+      date: new Date().toISOString().split('T')[0],
+      location: '',
+      startTime: '',
+      endTime: '',
+    }),
+  )
   const [attendance, setAttendance] = useState<Record<string, string>>(() =>
     init('ypo_attendance', {}),
+  )
+  const [attendanceTimes, setAttendanceTimes] = useState<Record<string, string>>(() =>
+    init('ypo_attendance_times', {}),
   )
   const [roles, setRoles] = useState<Record<string, string>>(() => init('ypo_roles', {}))
   const [updates, setUpdates] = useState<Record<string, MemberUpdates>>(() =>
@@ -66,10 +90,19 @@ export const MeetingProvider = ({ children }: { children: React.ReactNode }) => 
   const [usedIcebreakers, setUsedIcebreakers] = useState<string[]>(() =>
     init('ypo_used_icebreakers', []),
   )
+  const [processorFeedback, setProcessorFeedback] = useState<string>(() =>
+    init('ypo_processor_feedback', ''),
+  )
 
+  React.useEffect(() => {
+    localStorage.setItem('ypo_meeting_details', JSON.stringify(meetingDetails))
+  }, [meetingDetails])
   React.useEffect(() => {
     localStorage.setItem('ypo_attendance', JSON.stringify(attendance))
   }, [attendance])
+  React.useEffect(() => {
+    localStorage.setItem('ypo_attendance_times', JSON.stringify(attendanceTimes))
+  }, [attendanceTimes])
   React.useEffect(() => {
     localStorage.setItem('ypo_roles', JSON.stringify(roles))
   }, [roles])
@@ -85,26 +118,44 @@ export const MeetingProvider = ({ children }: { children: React.ReactNode }) => 
   React.useEffect(() => {
     localStorage.setItem('ypo_used_icebreakers', JSON.stringify(usedIcebreakers))
   }, [usedIcebreakers])
+  React.useEffect(() => {
+    localStorage.setItem('ypo_processor_feedback', JSON.stringify(processorFeedback))
+  }, [processorFeedback])
 
   const resetMeeting = () => {
+    setMeetingDetails({
+      date: new Date().toISOString().split('T')[0],
+      location: '',
+      startTime: '',
+      endTime: '',
+    })
     setAttendance({})
+    setAttendanceTimes({})
     setRoles({})
     setUpdates({})
     setSelections([])
     setPresentations([])
+    setProcessorFeedback('')
+    localStorage.removeItem('ypo_meeting_details')
     localStorage.removeItem('ypo_attendance')
+    localStorage.removeItem('ypo_attendance_times')
     localStorage.removeItem('ypo_roles')
     localStorage.removeItem('ypo_updates')
     localStorage.removeItem('ypo_selections')
     localStorage.removeItem('ypo_presentations')
+    localStorage.removeItem('ypo_processor_feedback')
   }
 
   return React.createElement(
     MeetingContext.Provider,
     {
       value: {
+        meetingDetails,
+        setMeetingDetails,
         attendance,
         setAttendance,
+        attendanceTimes,
+        setAttendanceTimes,
         roles,
         setRoles,
         updates,
@@ -115,6 +166,8 @@ export const MeetingProvider = ({ children }: { children: React.ReactNode }) => 
         setPresentations,
         usedIcebreakers,
         setUsedIcebreakers,
+        processorFeedback,
+        setProcessorFeedback,
         resetMeeting,
       },
     },
