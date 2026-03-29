@@ -86,16 +86,6 @@ export const EMOTIONS = [
     ],
   },
   {
-    name: 'INDIGNAÇÃO',
-    color: 'bg-orange-100 hover:bg-orange-200 text-orange-800 border-orange-300',
-    sub: [
-      { name: 'Desaprovado', sub: ['Crítico', 'Envergonhado'] },
-      { name: 'Desapontado', sub: ['Chocado', 'Revoltado'] },
-      { name: 'Horrível', sub: ['Enjoado', 'Detestável'] },
-      { name: 'Repelido', sub: ['Horrorizado', 'Hesitante'] },
-    ],
-  },
-  {
     name: 'TRISTEZA',
     color: 'bg-blue-100 hover:bg-blue-200 text-blue-800 border-blue-300',
     sub: [

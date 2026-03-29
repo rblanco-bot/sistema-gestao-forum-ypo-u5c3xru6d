@@ -24,6 +24,19 @@ export function GlobalTimer() {
 
   const presets = [2, 5, 10, 30, 40, 60]
 
+  useEffect(() => {
+    if (timeLeft === 0 && isRunning) {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const osc = ctx.createOscillator()
+      osc.type = 'triangle'
+      osc.frequency.setValueAtTime(440, ctx.currentTime)
+      osc.connect(ctx.destination)
+      osc.start()
+      osc.stop(ctx.currentTime + 0.5)
+      setIsRunning(false)
+    }
+  }, [timeLeft, isRunning])
+
   return (
     <div className="flex items-center gap-3 bg-slate-900 px-4 py-2 rounded-xl border border-slate-700 shadow-lg">
       <span

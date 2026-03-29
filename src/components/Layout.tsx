@@ -35,7 +35,12 @@ export function Layout() {
       icon: LayoutDashboard,
       roles: ['Moderador', 'Vice-Moderador', 'Tesoureiro', 'Membro'],
     },
-    { title: 'Membros', url: '/members', icon: Users, roles: ['Moderador'] },
+    {
+      title: 'Membros',
+      url: '/members',
+      icon: Users,
+      roles: ['Moderador', 'Vice-Moderador', 'Tesoureiro', 'Membro'],
+    },
     {
       title: 'Agenda',
       url: '/agenda',
@@ -58,7 +63,7 @@ export function Layout() {
       title: 'Finanças',
       url: '/finance',
       icon: Banknote,
-      roles: ['Moderador', 'Vice-Moderador', 'Tesoureiro', 'Membro'],
+      roles: ['Moderador', 'Vice-Moderador', 'Tesoureiro'],
     },
     {
       title: 'Recursos',

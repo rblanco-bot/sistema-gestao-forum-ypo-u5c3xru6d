@@ -20,19 +20,22 @@ import {
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import useMeetingStore from '@/stores/useMeetingStore'
-import { MEMBERS, ICEBREAKERS, USED_ICEBREAKERS } from '@/lib/mock'
+import { MEMBERS, ICEBREAKERS } from '@/lib/mock'
 
 export default function Step1Opening() {
-  const { roles, setRoles, attendance, setAttendance } = useMeetingStore()
+  const { roles, setRoles, attendance, setAttendance, usedIcebreakers, setUsedIcebreakers } =
+    useMeetingStore()
   const [icebreaker, setIcebreaker] = useState<(typeof ICEBREAKERS)[0] | null>(null)
 
   const handleShuffle = () => {
-    const available = ICEBREAKERS.filter((ib) => !USED_ICEBREAKERS.includes(ib.text))
-    const random =
-      available.length > 0
-        ? available[Math.floor(Math.random() * available.length)]
-        : ICEBREAKERS[Math.floor(Math.random() * ICEBREAKERS.length)]
+    let available = ICEBREAKERS.filter((ib) => !usedIcebreakers.includes(ib.text))
+    if (available.length === 0) {
+      setUsedIcebreakers([])
+      available = ICEBREAKERS
+    }
+    const random = available[Math.floor(Math.random() * available.length)]
     setIcebreaker(random)
+    setUsedIcebreakers((prev) => [...prev, random.text])
   }
 
   const checklist = [

@@ -9,11 +9,23 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { FINANCE_TRANSACTIONS } from '@/lib/mock'
-import { ArrowDownRight, ArrowUpRight, Wallet } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, Wallet, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import useMainStore from '@/stores/main'
 
 export default function Finance() {
+  const { currentUser } = useMainStore()
   const balance = FINANCE_TRANSACTIONS.reduce((acc, curr) => acc + curr.value, 0)
+
+  if (!['Moderador', 'Vice-Moderador', 'Tesoureiro'].includes(currentUser.role)) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
+        <Lock className="h-12 w-12 text-slate-300" />
+        <h2 className="text-xl font-bold text-slate-700">Acesso Restrito</h2>
+        <p className="text-slate-500">Apenas Tesouraria e Moderação podem acessar Finanças.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 animate-fade-in-up">

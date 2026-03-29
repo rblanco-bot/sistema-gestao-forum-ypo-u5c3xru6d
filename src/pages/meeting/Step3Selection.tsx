@@ -56,9 +56,9 @@ export default function Step3Selection() {
       case '2':
         return 'bg-orange-100 text-orange-800 border-orange-200'
       case '3':
-        return 'bg-amber-100 text-amber-800 border-amber-200'
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
       case '4':
-        return 'bg-emerald-100 text-emerald-800 border-emerald-200'
+        return 'bg-green-100 text-green-800 border-green-200'
       case '5':
         return 'bg-slate-100 text-slate-800 border-slate-200'
       default:

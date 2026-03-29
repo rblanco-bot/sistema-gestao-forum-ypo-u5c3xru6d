@@ -20,13 +20,36 @@ export default function Step5Housekeeping() {
     'Check-out: uma palavra de como você sai',
   ]
 
+  const generateICS = () => {
+    const icsContent = `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+SUMMARY:Próximo Fórum YPO
+DTSTART:${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().replace(/[-:]/g, '').split('.')[0]}Z
+DTEND:${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString().replace(/[-:]/g, '').split('.')[0]}Z
+END:VEVENT
+END:VCALENDAR`
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', 'proximo_forum.ics')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   const handleFinish = () => {
     toast({
       title: 'Reunião Finalizada com Sucesso!',
-      description: 'As atas foram salvas no histórico.',
+      description: 'As atas foram salvas no histórico. O download foi iniciado.',
     })
-    resetMeeting()
-    navigate('/minutes')
+    generateICS()
+    setTimeout(() => {
+      window.print() // Simplest way to trigger PDF export for metadata-only minutes
+      resetMeeting()
+      navigate('/minutes')
+    }, 1000)
   }
 
   return (

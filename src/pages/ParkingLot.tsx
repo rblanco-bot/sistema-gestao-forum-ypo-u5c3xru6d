@@ -9,11 +9,24 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Plus, Edit2, CheckCircle2 } from 'lucide-react'
+import { Plus, Edit2, CheckCircle2, Lock } from 'lucide-react'
 import { PARKING_LOT } from '@/lib/mock'
 import { cn } from '@/lib/utils'
+import useMainStore from '@/stores/main'
 
 export default function ParkingLot() {
+  const { currentUser } = useMainStore()
+
+  if (!['Moderador', 'Vice-Moderador'].includes(currentUser.role)) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
+        <Lock className="h-12 w-12 text-slate-300" />
+        <h2 className="text-xl font-bold text-slate-700">Acesso Restrito</h2>
+        <p className="text-slate-500">Apenas Moderadores podem gerenciar o Parking Lot.</p>
+      </div>
+    )
+  }
+
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
       case 'Crítica':

@@ -9,7 +9,18 @@ type MainContextType = {
 const MainContext = createContext<MainContextType | null>(null)
 
 export const MainProvider = ({ children }: { children: React.ReactNode }) => {
-  const [currentUser, setCurrentUser] = useState(MEMBERS[0])
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem('ypo_user')
+      return stored ? JSON.parse(stored) : MEMBERS[0]
+    } catch {
+      return MEMBERS[0]
+    }
+  })
+
+  React.useEffect(() => {
+    localStorage.setItem('ypo_user', JSON.stringify(currentUser))
+  }, [currentUser])
 
   return React.createElement(
     MainContext.Provider,

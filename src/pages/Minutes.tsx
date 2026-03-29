@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   BarChart,
   Bar,
@@ -56,7 +56,18 @@ const chartConfig = {
 export default function Minutes() {
   const finalized = MEETINGS.filter((m) => m.status === 'Finalizada')
   const [viewMode, setViewMode] = useState('series')
-  const [selectedMeeting, setSelectedMeeting] = useState(finalized[0]?.id || '')
+  const [selectedMeeting, setSelectedMeeting] = useState<string>(finalized[0]?.id || '')
+  const [selectedSeries, setSelectedSeries] = useState<string[]>(finalized.map((m) => m.id))
+
+  const activeData = useMemo(() => {
+    const factor = viewMode === 'single' ? parseInt(selectedMeeting || '1') : selectedSeries.length
+    return depthData.map((d) => ({
+      ...d,
+      Pessoal: Math.max(0, Math.min(3, d.Pessoal * (factor * 0.5 + 0.5))),
+      Familiar: Math.max(0, Math.min(3, d.Familiar * (factor * 0.4 + 0.6))),
+      Profissional: Math.max(0, Math.min(3, d.Profissional * (factor * 0.3 + 0.7))),
+    }))
+  }, [viewMode, selectedMeeting, selectedSeries])
 
   const handleExportPDF = () => {
     toast.success('Gerando PDF da Ata...', {
@@ -98,9 +109,9 @@ export default function Minutes() {
         </div>
       </div>
 
-      {viewMode === 'single' && (
-        <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-lg border">
-          <Filter className="h-4 w-4 text-slate-500" />
+      <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-lg border">
+        <Filter className="h-4 w-4 text-slate-500" />
+        {viewMode === 'single' ? (
           <Select value={selectedMeeting} onValueChange={setSelectedMeeting}>
             <SelectTrigger className="w-[250px] bg-white">
               <SelectValue placeholder="Selecione a reunião" />
@@ -113,8 +124,33 @@ export default function Minutes() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-      )}
+        ) : (
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-sm text-slate-500 mr-2">Reuniões:</span>
+            {finalized.map((m) => (
+              <Button
+                key={m.id}
+                variant={selectedSeries.includes(m.id) ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  setSelectedSeries((prev) =>
+                    prev.includes(m.id) && prev.length > 1
+                      ? prev.filter((id) => id !== m.id)
+                      : [...prev.filter((id) => id !== m.id), m.id],
+                  )
+                }}
+                className={
+                  selectedSeries.includes(m.id)
+                    ? 'bg-slate-800 text-white'
+                    : 'bg-white text-slate-700'
+                }
+              >
+                #{m.id}
+              </Button>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1 space-y-4">
@@ -159,7 +195,7 @@ export default function Minutes() {
             </CardHeader>
             <CardContent>
               <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                <BarChart data={depthData}>
+                <BarChart data={activeData}>
                   <CartesianGrid vertical={false} />
                   <XAxis dataKey="name" tickLine={false} axisLine={false} />
                   <YAxis tickLine={false} axisLine={false} domain={[0, 3]} />

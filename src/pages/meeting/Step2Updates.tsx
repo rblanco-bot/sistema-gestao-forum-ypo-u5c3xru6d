@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { ChevronRight, ArrowLeft } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
+import { ChevronRight } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { EMOTIONS, MEMBERS } from '@/lib/mock'
+import { Label } from '@/components/ui/label'
+import { Slider } from '@/components/ui/slider'
+import { MEMBERS } from '@/lib/mock'
 import { cn } from '@/lib/utils'
 import {
   Select,
@@ -12,63 +14,81 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import useMeetingStore from '@/stores/useMeetingStore'
+
+const CATEGORIES = [
+  {
+    id: 'Pessoal',
+    label: 'Pessoal',
+    color: 'bg-blue-600',
+    text: 'text-blue-600',
+    border: 'border-blue-200',
+    bgLight: 'bg-blue-50',
+  },
+  {
+    id: 'Familiar',
+    label: 'Familiar',
+    color: 'bg-amber-500',
+    text: 'text-amber-600',
+    border: 'border-amber-200',
+    bgLight: 'bg-amber-50',
+  },
+  {
+    id: 'Profissional',
+    label: 'Profissional',
+    color: 'bg-emerald-500',
+    text: 'text-emerald-600',
+    border: 'border-emerald-200',
+    bgLight: 'bg-emerald-50',
+  },
+] as const
 
 export default function Step2Updates() {
   const [activeMember, setActiveMember] = useState(MEMBERS[0].id)
+  const { updates, setUpdates } = useMeetingStore()
 
-  const [level, setLevel] = useState(0)
-  const [selectedCore, setSelectedCore] = useState<any>(null)
-  const [selectedSecondary, setSelectedSecondary] = useState<any>(null)
-  const [selectedTertiary, setSelectedTertiary] = useState<string>('')
-
-  const [memory, setMemory] = useState('')
-
-  const handleCoreSelect = (emotion: any) => {
-    setSelectedCore(emotion)
-    setLevel(1)
+  const memberUpdates = updates[activeMember] || {
+    Pessoal: { depth: '0', keyword: '' },
+    Familiar: { depth: '0', keyword: '' },
+    Profissional: { depth: '0', keyword: '' },
   }
 
-  const handleSecondarySelect = (emotion: any) => {
-    setSelectedSecondary(emotion)
-    setLevel(2)
+  const handleUpdate = (cat: string, field: 'depth' | 'keyword', val: string) => {
+    setUpdates((prev) => ({
+      ...prev,
+      [activeMember]: {
+        ...(prev[activeMember] || {
+          Pessoal: { depth: '0', keyword: '' },
+          Familiar: { depth: '0', keyword: '' },
+          Profissional: { depth: '0', keyword: '' },
+        }),
+        [cat]: {
+          ...(prev[activeMember]?.[cat as keyof typeof memberUpdates] || {
+            depth: '0',
+            keyword: '',
+          }),
+          [field]: val,
+        },
+      },
+    }))
   }
 
-  const handleTertiarySelect = (emotion: string) => {
-    setSelectedTertiary(emotion)
+  const nextMember = () => {
+    const idx = MEMBERS.findIndex((m) => m.id === activeMember)
+    if (idx < MEMBERS.length - 1) setActiveMember(MEMBERS[idx + 1].id)
   }
-
-  const resetEmotion = () => {
-    setLevel(0)
-    setSelectedCore(null)
-    setSelectedSecondary(null)
-    setSelectedTertiary('')
-  }
-
-  const goBack = () => {
-    if (level === 2) {
-      setLevel(1)
-      setSelectedTertiary('')
-      setSelectedSecondary(null)
-    } else if (level === 1) {
-      setLevel(0)
-      setSelectedCore(null)
-    }
-  }
-
-  const currentEmotionName =
-    selectedTertiary || selectedSecondary?.name || selectedCore?.name || '_____'
 
   return (
     <div className="space-y-6 animate-fade-in-up">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Atualizações (5% Form)</h2>
-          <p className="text-slate-500">Compartilhe o seu estado emocional atual.</p>
+          <h2 className="text-2xl font-bold">Atualizações (Updates)</h2>
+          <p className="text-slate-500">Registre o nível de profundidade e palavra-chave.</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium whitespace-nowrap">Membro Atual:</span>
+          <span className="text-sm font-medium whitespace-nowrap">Membro:</span>
           <Select value={activeMember} onValueChange={setActiveMember}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[180px] bg-white">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -82,125 +102,59 @@ export default function Step2Updates() {
         </div>
       </div>
 
-      <Card className="border-2 border-indigo-100 shadow-sm overflow-hidden">
-        <div className="bg-indigo-50 p-6 border-b border-indigo-100">
-          <div className="max-w-3xl mx-auto text-center space-y-4">
-            <h3 className="text-sm font-bold text-indigo-400 uppercase tracking-widest">
-              Frase Guia
-            </h3>
-            <p className="text-2xl sm:text-3xl font-medium text-slate-800 leading-relaxed">
-              "A emoção que estou sentindo é{' '}
-              <span className="font-bold text-indigo-600 underline decoration-indigo-200 underline-offset-4">
-                {currentEmotionName}
-              </span>{' '}
-              e isso me faz lembrar{' '}
-              <span className="font-bold text-indigo-600 underline decoration-indigo-200 underline-offset-4">
-                {memory || '_____'}
-              </span>
-              ."
-            </p>
-            <div className="pt-4 max-w-md mx-auto">
-              <Input
-                placeholder="O que isso te faz lembrar?"
-                value={memory}
-                onChange={(e) => setMemory(e.target.value)}
-                className="bg-white/80 border-indigo-200 focus-visible:ring-indigo-500 text-center"
-              />
-            </div>
-          </div>
-        </div>
+      <div className="grid md:grid-cols-3 gap-6">
+        {CATEGORIES.map((cat) => {
+          const data = memberUpdates[cat.id as keyof typeof memberUpdates]
+          return (
+            <Card
+              key={cat.id}
+              className={cn('border-t-4 shadow-sm', `border-t-${cat.color.split('-')[1]}-500`)}
+            >
+              <CardHeader className={cn('pb-4 border-b', cat.bgLight)}>
+                <CardTitle className={cn('text-lg', cat.text)}>{cat.label}</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-6">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-slate-600 font-semibold">Profundidade (0-3)</Label>
+                    <span className={cn('text-xl font-bold', cat.text)}>{data.depth}</span>
+                  </div>
+                  <Slider
+                    defaultValue={[parseInt(data.depth)]}
+                    value={[parseInt(data.depth)]}
+                    max={3}
+                    step={1}
+                    onValueChange={(v) => handleUpdate(cat.id, 'depth', v[0].toString())}
+                    className="py-4"
+                  />
+                  <div className="flex justify-between text-xs text-slate-400 font-medium">
+                    <span>0 (Superficial)</span>
+                    <span>3 (Muito Profundo)</span>
+                  </div>
+                </div>
 
-        <CardContent className="p-6">
-          <div className="mb-6 flex items-center justify-between">
-            <h4 className="text-lg font-semibold text-slate-800">Roda de Emoções</h4>
-            {level > 0 && (
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={goBack}>
-                  <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
-                </Button>
-                <Button variant="ghost" size="sm" onClick={resetEmotion}>
-                  Reiniciar
-                </Button>
-              </div>
-            )}
-          </div>
-
-          <div className="min-h-[250px] flex flex-col justify-center">
-            {level === 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 animate-fade-in">
-                {EMOTIONS.map((e) => (
-                  <Button
-                    key={e.name}
-                    variant="outline"
+                <div className="space-y-2 pt-2">
+                  <Label className="text-slate-600 font-semibold">Palavra-Chave</Label>
+                  <Input
+                    placeholder={`Ex: Casamento, Promoção...`}
+                    value={data.keyword}
+                    onChange={(e) => handleUpdate(cat.id, 'keyword', e.target.value)}
                     className={cn(
-                      'h-24 text-base font-bold flex flex-col gap-2 transition-all hover:scale-105',
-                      e.color,
+                      'focus-visible:ring-1',
+                      `focus-visible:ring-${cat.color.split('-')[1]}-500`,
+                      cat.border,
                     )}
-                    onClick={() => handleCoreSelect(e)}
-                  >
-                    {e.name}
-                  </Button>
-                ))}
-              </div>
-            )}
-
-            {level === 1 && selectedCore && (
-              <div className="space-y-6 animate-fade-in">
-                <p className="text-center text-sm font-medium text-slate-500">
-                  Selecione uma emoção secundária de{' '}
-                  <span className="font-bold text-slate-800">{selectedCore.name}</span>:
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {selectedCore.sub.map((sec: any) => (
-                    <Button
-                      key={sec.name}
-                      variant="outline"
-                      className={cn(
-                        'h-16 text-sm font-semibold transition-all hover:scale-105',
-                        selectedCore.color,
-                      )}
-                      onClick={() => handleSecondarySelect(sec)}
-                    >
-                      {sec.name}
-                    </Button>
-                  ))}
+                  />
                 </div>
-              </div>
-            )}
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
 
-            {level === 2 && selectedSecondary && (
-              <div className="space-y-6 animate-fade-in">
-                <p className="text-center text-sm font-medium text-slate-500">
-                  Você está se sentindo{' '}
-                  <span className="font-bold text-slate-800">{selectedSecondary.name}</span>.
-                  Especificamente:
-                </p>
-                <div className="flex flex-wrap justify-center gap-4">
-                  {selectedSecondary.sub.map((ter: string) => (
-                    <Button
-                      key={ter}
-                      variant={selectedTertiary === ter ? 'default' : 'outline'}
-                      className={cn(
-                        'h-14 px-8 text-sm font-semibold transition-all hover:scale-105',
-                        selectedTertiary === ter
-                          ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                          : selectedCore.color,
-                      )}
-                      onClick={() => handleTertiarySelect(ter)}
-                    >
-                      {ter}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex justify-end">
-        <Button className="bg-slate-900 hover:bg-slate-800" disabled={!selectedTertiary || !memory}>
-          Salvar e Próximo Membro <ChevronRight className="h-4 w-4 ml-2" />
+      <div className="flex justify-end pt-4">
+        <Button onClick={nextMember} className="bg-slate-900 hover:bg-slate-800">
+          Salvar e Próximo <ChevronRight className="h-4 w-4 ml-2" />
         </Button>
       </div>
     </div>
