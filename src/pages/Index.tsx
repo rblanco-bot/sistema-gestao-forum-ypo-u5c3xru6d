@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
-import { Calendar, CheckCircle2, ListTodo, Wallet } from 'lucide-react'
+import { Calendar, CheckCircle2, ListTodo, Wallet, AlertTriangle } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import useMainStore from '@/stores/main'
-import { MEETINGS, PARKING_LOT, FINANCE_TRANSACTIONS } from '@/lib/mock'
+import { MEETINGS, PARKING_LOT, FINANCE_TRANSACTIONS, MEMBERS } from '@/lib/mock'
 import { AttendanceDashboard } from '@/components/AttendanceDashboard'
 import useAttendanceStore from '@/stores/useAttendanceStore'
 
@@ -29,6 +30,16 @@ export default function Index() {
         r.delayMinutes <= 15,
     ).length * 500
 
+  const memberAbsences = MEMBERS.map((member) => {
+    const memberRecords = records.filter((r) => r.memberId === member.id)
+    const totalAbsences = memberRecords.reduce((acc, curr) => {
+      if (curr.status === 'ausente') return acc + 1
+      if (curr.status === 'parcial') return acc + 0.5
+      return acc
+    }, 0)
+    return { ...member, totalAbsences }
+  }).filter((m) => m.totalAbsences > 2)
+
   return (
     <div className="space-y-8 animate-fade-in-up">
       <div className="flex flex-col space-y-2">
@@ -37,6 +48,28 @@ export default function Index() {
         </h1>
         <p className="text-slate-500">Aqui está o resumo do seu Fórum YPO hoje.</p>
       </div>
+
+      {memberAbsences.length > 0 && (
+        <div className="space-y-4">
+          {memberAbsences.map((member) => (
+            <Alert
+              key={member.id}
+              variant="destructive"
+              className="bg-red-50 border-red-200 text-red-800"
+            >
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+              <AlertTitle className="text-red-800 font-semibold">
+                Alerta Crítico de Frequência
+              </AlertTitle>
+              <AlertDescription className="text-red-700 mt-1">
+                O membro <strong>{member.name}</strong> atingiu{' '}
+                <strong>{member.totalAbsences} faltas</strong> e está agora sujeito a uma votação de
+                expulsão.
+              </AlertDescription>
+            </Alert>
+          ))}
+        </div>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card className="col-span-2 bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none shadow-lg">

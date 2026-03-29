@@ -43,8 +43,8 @@ const MOCK_RECORDS: AttendanceRecord[] = [
     meetingId: 'mock-4',
     meetingDate: `${currentYear}-04-15`,
     memberId: MEMBERS[2]?.id || MEMBERS[0]?.id,
-    status: 'atrasado',
-    delayMinutes: 20,
+    status: 'ausente',
+    delayMinutes: 0,
   },
 ]
 

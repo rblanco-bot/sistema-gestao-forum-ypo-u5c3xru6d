@@ -12,6 +12,7 @@ import Minutes from './pages/Minutes'
 import ParkingLot from './pages/ParkingLot'
 import Finance from './pages/Finance'
 import Resources from './pages/Resources'
+import History from './pages/History'
 
 import MeetingLayout from './pages/meeting/MeetingLayout'
 import Step1Opening from './pages/meeting/Step1Opening'
@@ -23,40 +24,44 @@ import Step5Housekeeping from './pages/meeting/Step5Housekeeping'
 import { MainProvider } from './stores/main'
 import { MeetingProvider } from './stores/useMeetingStore'
 import { AttendanceProvider } from './stores/useAttendanceStore'
+import { HistoryProvider } from './stores/useHistoryStore'
 
 const App = () => (
   <MainProvider>
     <AttendanceProvider>
-      <MeetingProvider>
-        <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <Routes>
-              <Route element={<Layout />}>
-                <Route path="/" element={<Index />} />
-                <Route path="/members" element={<Members />} />
-                <Route path="/agenda" element={<Agenda />} />
-                <Route path="/minutes" element={<Minutes />} />
-                <Route path="/parking-lot" element={<ParkingLot />} />
-                <Route path="/finance" element={<Finance />} />
-                <Route path="/resources" element={<Resources />} />
-              </Route>
+      <HistoryProvider>
+        <MeetingProvider>
+          <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <Routes>
+                <Route element={<Layout />}>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/members" element={<Members />} />
+                  <Route path="/agenda" element={<Agenda />} />
+                  <Route path="/minutes" element={<Minutes />} />
+                  <Route path="/parking-lot" element={<ParkingLot />} />
+                  <Route path="/finance" element={<Finance />} />
+                  <Route path="/resources" element={<Resources />} />
+                  <Route path="/history" element={<History />} />
+                </Route>
 
-              <Route path="/meeting/:id" element={<MeetingLayout />}>
-                <Route index element={<Navigate to="step1" replace />} />
-                <Route path="step1" element={<Step1Opening />} />
-                <Route path="step2" element={<Step2Updates />} />
-                <Route path="step3" element={<Step3Selection />} />
-                <Route path="step4" element={<Step4DeepDive />} />
-                <Route path="step5" element={<Step5Housekeeping />} />
-              </Route>
+                <Route path="/meeting/:id" element={<MeetingLayout />}>
+                  <Route index element={<Navigate to="step1" replace />} />
+                  <Route path="step1" element={<Step1Opening />} />
+                  <Route path="step2" element={<Step2Updates />} />
+                  <Route path="step3" element={<Step3Selection />} />
+                  <Route path="step4" element={<Step4DeepDive />} />
+                  <Route path="step5" element={<Step5Housekeeping />} />
+                </Route>
 
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </TooltipProvider>
-        </BrowserRouter>
-      </MeetingProvider>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </TooltipProvider>
+          </BrowserRouter>
+        </MeetingProvider>
+      </HistoryProvider>
     </AttendanceProvider>
   </MainProvider>
 )

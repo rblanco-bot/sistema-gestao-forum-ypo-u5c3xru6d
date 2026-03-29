@@ -7,6 +7,7 @@ import {
   Banknote,
   BarChart,
   Lightbulb,
+  History,
 } from 'lucide-react'
 import {
   SidebarProvider,
@@ -51,6 +52,12 @@ export function Layout() {
       title: 'Atas & Analytics',
       url: '/minutes',
       icon: BarChart,
+      roles: ['Moderador', 'Vice-Moderador', 'Tesoureiro', 'Membro'],
+    },
+    {
+      title: 'Histórico de Reuniões',
+      url: '/history',
+      icon: History,
       roles: ['Moderador', 'Vice-Moderador', 'Tesoureiro', 'Membro'],
     },
     {
