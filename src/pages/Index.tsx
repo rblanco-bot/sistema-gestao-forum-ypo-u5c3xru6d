@@ -1,12 +1,125 @@
-/* Home Page - Replace this page layout, components, content, behavior with what you want and translate to the language of the user */
-const Index = () => {
+import { Link } from 'react-router-dom'
+import { Calendar, CheckCircle2, ListTodo, Wallet } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import useMainStore from '@/stores/main'
+import { MEETINGS, PARKING_LOT, FINANCE_TRANSACTIONS } from '@/lib/mock'
+
+export default function Index() {
+  const { currentUser } = useMainStore()
+
+  const nextMeeting = MEETINGS.find((m) => m.status === 'Agendada')
+  const pastMeetings = MEETINGS.filter((m) => m.status === 'Finalizada').slice(0, 3)
+  const pendingTopics = PARKING_LOT.filter((p) => p.status === 'Pendente').length
+
+  const balance = FINANCE_TRANSACTIONS.reduce((acc, curr) => acc + curr.value, 0)
+
   return (
-    <div className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-6">
-        This is a example page ready to be rewritten with your own content
-      </h1>
+    <div className="space-y-8 animate-fade-in-up">
+      <div className="flex flex-col space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+          Olá, {currentUser.name.split(' ')[0]}
+        </h1>
+        <p className="text-slate-500">Aqui está o resumo do seu Fórum YPO hoje.</p>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="col-span-2 bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-blue-400" />
+              Próxima Reunião
+            </CardTitle>
+            <CardDescription className="text-slate-300">
+              Prepare-se para o próximo encontro
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {nextMeeting ? (
+              <>
+                <div className="space-y-1">
+                  <p className="text-2xl font-semibold">
+                    {new Date(nextMeeting.date).toLocaleDateString('pt-BR', {
+                      day: '2-digit',
+                      month: 'long',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </p>
+                  <p className="text-sm text-slate-300">
+                    Host: {nextMeeting.host} • Local: {nextMeeting.location}
+                  </p>
+                </div>
+                {['Moderador', 'Vice-Moderador'].includes(currentUser.role) && (
+                  <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                    <Link to={`/meeting/${nextMeeting.id}`}>Iniciar Reunião</Link>
+                  </Button>
+                )}
+              </>
+            ) : (
+              <p className="text-slate-300">Nenhuma reunião agendada.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-slate-500">Fundo do Grupo</CardTitle>
+            <Wallet className="h-4 w-4 text-emerald-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-slate-900">
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                balance,
+              )}
+            </div>
+            <p className="text-xs text-slate-500 mt-1">Saldo atual</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-slate-500">Parking Lot</CardTitle>
+            <ListTodo className="h-4 w-4 text-amber-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-slate-900">{pendingTopics}</div>
+            <p className="text-xs text-slate-500 mt-1">Tópicos pendentes</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-blue-500" />
+              Atas Recentes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {pastMeetings.map((meeting) => (
+                <div
+                  key={meeting.id}
+                  className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
+                >
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-slate-900">
+                      {new Date(meeting.date).toLocaleDateString('pt-BR')}
+                    </p>
+                    <p className="text-xs text-slate-500">Host: {meeting.host}</p>
+                  </div>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/minutes">Ver Resumo</Link>
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
-
-export default Index
