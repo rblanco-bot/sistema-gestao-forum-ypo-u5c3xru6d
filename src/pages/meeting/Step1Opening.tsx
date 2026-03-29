@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { RefreshCw, UserCheck, CheckSquare } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import useMeetingStore from '@/stores/useMeetingStore'
+import useAttendanceStore from '@/stores/useAttendanceStore'
 import { MEMBERS, ICEBREAKERS, EMOTIONS } from '@/lib/mock'
 
 export default function Step1Opening() {
@@ -36,7 +37,31 @@ export default function Step1Opening() {
     attendanceTimes,
     setAttendanceTimes,
   } = useMeetingStore()
+  const { addMeetingRecords } = useAttendanceStore()
   const [icebreaker, setIcebreaker] = useState<(typeof ICEBREAKERS)[0] | null>(null)
+
+  useEffect(() => {
+    if (!meetingDetails.date) return
+    const newRecords = MEMBERS.map((m) => {
+      const status = attendance[m.id] || 'presente'
+      let delayMinutes = 0
+      if (status === 'atrasado' && meetingDetails.startTime && attendanceTimes[m.id]) {
+        const [startH, startM] = meetingDetails.startTime.split(':').map(Number)
+        const [arrH, arrM] = attendanceTimes[m.id].split(':').map(Number)
+        const startTotal = startH * 60 + startM
+        const arrTotal = arrH * 60 + arrM
+        delayMinutes = Math.max(0, arrTotal - startTotal)
+      }
+      return {
+        meetingId: meetingDetails.date,
+        meetingDate: meetingDetails.date,
+        memberId: m.id,
+        status,
+        delayMinutes,
+      }
+    })
+    addMeetingRecords(newRecords)
+  }, [attendance, attendanceTimes, meetingDetails, addMeetingRecords])
 
   const handleShuffle = () => {
     let available = ICEBREAKERS.filter((ib) => !usedIcebreakers.includes(ib.text))

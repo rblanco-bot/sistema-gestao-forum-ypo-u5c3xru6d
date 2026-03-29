@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import useMainStore from '@/stores/main'
 import { MEETINGS, PARKING_LOT, FINANCE_TRANSACTIONS } from '@/lib/mock'
+import { AttendanceDashboard } from '@/components/AttendanceDashboard'
+import useAttendanceStore from '@/stores/useAttendanceStore'
 
 export default function Index() {
   const { currentUser } = useMainStore()
@@ -13,7 +15,19 @@ export default function Index() {
   const pastMeetings = MEETINGS.filter((m) => m.status === 'Finalizada').slice(0, 3)
   const pendingTopics = PARKING_LOT.filter((p) => p.status === 'Pendente').length
 
+  const { records } = useAttendanceStore()
+
   const balance = FINANCE_TRANSACTIONS.reduce((acc, curr) => acc + curr.value, 0)
+
+  const currentYear = new Date().getFullYear()
+  const totalFinesValue =
+    records.filter(
+      (r) =>
+        new Date(r.meetingDate).getFullYear() === currentYear &&
+        r.status === 'atrasado' &&
+        r.delayMinutes > 0 &&
+        r.delayMinutes <= 15,
+    ).length * 500
 
   return (
     <div className="space-y-8 animate-fade-in-up">
@@ -65,16 +79,22 @@ export default function Index() {
 
         <Card className="shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Fundo do Grupo</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-500">Caixa do Fórum</CardTitle>
             <Wallet className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-slate-900">
               {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                balance,
+                balance + totalFinesValue,
               )}
             </div>
-            <p className="text-xs text-slate-500 mt-1">Saldo atual</p>
+            <p className="text-xs text-slate-500 mt-1">
+              Inclui{' '}
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                totalFinesValue,
+              )}{' '}
+              em multas
+            </p>
           </CardContent>
         </Card>
 
@@ -91,6 +111,7 @@ export default function Index() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
+        <AttendanceDashboard />
         <Card className="shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
