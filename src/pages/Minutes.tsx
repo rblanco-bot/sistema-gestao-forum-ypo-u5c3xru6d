@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   BarChart,
   Bar,
@@ -9,6 +10,7 @@ import {
   Cell,
   ResponsiveContainer,
 } from 'recharts'
+import { Download, Filter } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import {
   ChartContainer,
@@ -17,7 +19,17 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from '@/components/ui/chart'
+import { Button } from '@/components/ui/button'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { MEETINGS } from '@/lib/mock'
+import { toast } from 'sonner'
 
 const depthData = [
   { name: 'Rafael', Pessoal: 2.5, Familiar: 1.5, Profissional: 3.0 },
@@ -43,15 +55,66 @@ const chartConfig = {
 
 export default function Minutes() {
   const finalized = MEETINGS.filter((m) => m.status === 'Finalizada')
+  const [viewMode, setViewMode] = useState('series')
+  const [selectedMeeting, setSelectedMeeting] = useState(finalized[0]?.id || '')
+
+  const handleExportPDF = () => {
+    toast.success('Gerando PDF da Ata...', {
+      description: 'O download iniciará em instantes.',
+    })
+    setTimeout(() => {
+      window.print()
+    }, 1000)
+  }
+
+  const chartTitle =
+    viewMode === 'single'
+      ? `Profundidade - Reunião #${selectedMeeting}`
+      : 'Média de Profundidade (Série)'
 
   return (
     <div className="space-y-8 animate-fade-in-up">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Atas e Dashboards</h1>
-        <p className="text-muted-foreground">
-          Histórico de reuniões e análises de profundidade do grupo.
-        </p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Atas e Dashboards</h1>
+          <p className="text-muted-foreground">
+            Histórico de reuniões e análises de profundidade do grupo.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <ToggleGroup
+            type="single"
+            value={viewMode}
+            onValueChange={(v) => v && setViewMode(v)}
+            className="bg-white border rounded-md"
+          >
+            <ToggleGroupItem value="single" aria-label="Uma Reunião" className="px-3 text-sm">
+              Uma Reunião
+            </ToggleGroupItem>
+            <ToggleGroupItem value="series" aria-label="Série de Reuniões" className="px-3 text-sm">
+              Série de Reuniões
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
       </div>
+
+      {viewMode === 'single' && (
+        <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-lg border">
+          <Filter className="h-4 w-4 text-slate-500" />
+          <Select value={selectedMeeting} onValueChange={setSelectedMeeting}>
+            <SelectTrigger className="w-[250px] bg-white">
+              <SelectValue placeholder="Selecione a reunião" />
+            </SelectTrigger>
+            <SelectContent>
+              {finalized.map((m) => (
+                <SelectItem key={m.id} value={m.id}>
+                  Reunião #{m.id} - {new Date(m.date).toLocaleDateString('pt-BR')}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1 space-y-4">
@@ -67,6 +130,17 @@ export default function Minutes() {
                   <span className="text-xs bg-slate-100 px-2 py-1 rounded">4SFE: Profissional</span>
                   <span className="text-xs bg-slate-100 px-2 py-1 rounded">Exercício: Pessoal</span>
                 </div>
+                <div className="pt-3 mt-3 border-t">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    onClick={handleExportPDF}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Exportar Ata (PDF)
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -75,9 +149,12 @@ export default function Minutes() {
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Média de Profundidade por Categoria</CardTitle>
+              <CardTitle>{chartTitle}</CardTitle>
               <CardDescription>
-                Nível (0-3) médio alcançado pelos membros nas últimas 3 reuniões.
+                Nível (0-3){' '}
+                {viewMode === 'series'
+                  ? 'médio alcançado nas últimas reuniões.'
+                  : `alcançado na reunião selecionada.`}
               </CardDescription>
             </CardHeader>
             <CardContent>
