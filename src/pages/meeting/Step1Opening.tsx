@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import useMeetingStore from '@/stores/useMeetingStore'
-import { MEMBERS, ICEBREAKERS } from '@/lib/mock'
+import { MEMBERS, ICEBREAKERS, EMOTIONS } from '@/lib/mock'
 
 export default function Step1Opening() {
   const {
@@ -253,34 +253,6 @@ export default function Step1Opening() {
       </div>
     </div>
   )
-}
-
-const EMOTIONS = {
-  Alegria: {
-    Otimista: ['Esperançoso', 'Inspirado'],
-    Orgulhoso: ['Realizado', 'Confiante'],
-    Pacífico: ['Amoroso', 'Grato'],
-  },
-  Tristeza: {
-    Solitário: ['Isolado', 'Abandonado'],
-    Vulnerável: ['Frágil', 'Inseguro'],
-    Desespero: ['Angustiado', 'Vazio'],
-  },
-  Raiva: {
-    Frustrado: ['Irritado', 'Impaciente'],
-    Amargo: ['Indignado', 'Ressentido'],
-    Agressivo: ['Provocado', 'Hostil'],
-  },
-  Medo: {
-    Ansioso: ['Preocupado', 'Tenso'],
-    Inseguro: ['Inferior', 'Inadequado'],
-    Assustado: ['Apavorado', 'Pânico'],
-  },
-  Surpresa: {
-    Espantado: ['Chocado', 'Incrédulo'],
-    Confuso: ['Desorientado', 'Perplexo'],
-    Animado: ['Eufórico', 'Energético'],
-  },
 }
 
 function EmotionWheel() {

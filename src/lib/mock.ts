@@ -136,3 +136,31 @@ export const ICEBREAKERS = [
   { category: 'Impacto', text: 'Qual é o maior desafio ao tentar medir o impacto de uma ação?' },
   { category: 'Impacto', text: 'Para você, o que define o sucesso verdadeiro ao final da vida?' },
 ]
+
+export const EMOTIONS = {
+  Alegria: {
+    Otimista: ['Esperançoso', 'Inspirado'],
+    Orgulhoso: ['Realizado', 'Confiante'],
+    Pacífico: ['Amoroso', 'Grato'],
+  },
+  Tristeza: {
+    Solitário: ['Isolado', 'Abandonado'],
+    Vulnerável: ['Frágil', 'Inseguro'],
+    Desespero: ['Angustiado', 'Vazio'],
+  },
+  Raiva: {
+    Frustrado: ['Irritado', 'Impaciente'],
+    Amargo: ['Indignado', 'Ressentido'],
+    Agressivo: ['Provocado', 'Hostil'],
+  },
+  Medo: {
+    Ansioso: ['Preocupado', 'Tenso'],
+    Inseguro: ['Inferior', 'Inadequado'],
+    Assustado: ['Apavorado', 'Pânico'],
+  },
+  Surpresa: {
+    Espantado: ['Chocado', 'Incrédulo'],
+    Confuso: ['Desorientado', 'Perplexo'],
+    Animado: ['Eufórico', 'Energético'],
+  },
+}
