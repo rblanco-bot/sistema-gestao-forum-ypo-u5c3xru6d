@@ -17,12 +17,13 @@ import { Loader2 } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 
 export default function Login() {
+  const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  const { signIn } = useAuth()
+  const { signIn, signUp } = useAuth()
   const navigate = useNavigate()
 
   // Guard against navigating to login if already authenticated
@@ -35,13 +36,22 @@ export default function Login() {
     setIsLoading(true)
     setError('')
 
-    const { error: signInError } = await signIn(email, password)
+    let authError = null
 
-    if (signInError) {
-      setError('Credenciais inválidas. Por favor, verifique seu e-mail e senha.')
-      setIsLoading(false)
+    if (isSignUp) {
+      const { error } = await signUp(email, password)
+      authError = error
+      if (error) setError('Erro ao criar conta. A senha deve ter no mínimo 8 caracteres.')
     } else {
+      const { error } = await signIn(email, password)
+      authError = error
+      if (error) setError('Credenciais inválidas. Por favor, verifique seu e-mail e senha.')
+    }
+
+    if (!authError) {
       navigate('/', { replace: true })
+    } else {
+      setIsLoading(false)
     }
   }
 
@@ -50,7 +60,11 @@ export default function Login() {
       <Card className="w-full max-w-md shadow-lg border-0">
         <CardHeader className="space-y-2 text-center pb-6">
           <CardTitle className="text-2xl font-bold tracking-tight">Fórum YPO</CardTitle>
-          <CardDescription>Entre com suas credenciais para acessar o sistema</CardDescription>
+          <CardDescription>
+            {isSignUp
+              ? 'Crie uma nova conta para acessar'
+              : 'Entre com suas credenciais para acessar o sistema'}
+          </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
@@ -86,7 +100,7 @@ export default function Login() {
               />
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex flex-col gap-4">
             <Button
               className="w-full bg-slate-900 hover:bg-slate-800"
               type="submit"
@@ -95,12 +109,28 @@ export default function Login() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Entrando...
+                  {isSignUp ? 'Criando conta...' : 'Entrando...'}
                 </>
+              ) : isSignUp ? (
+                'Criar Conta'
               ) : (
                 'Entrar'
               )}
             </Button>
+            <div className="text-sm text-center text-slate-500">
+              {isSignUp ? 'Já tem uma conta?' : 'Não tem uma conta?'}{' '}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSignUp(!isSignUp)
+                  setError('')
+                }}
+                className="text-slate-900 font-semibold hover:underline"
+                disabled={isLoading}
+              >
+                {isSignUp ? 'Faça login' : 'Cadastre-se'}
+              </button>
+            </div>
           </CardFooter>
         </form>
       </Card>

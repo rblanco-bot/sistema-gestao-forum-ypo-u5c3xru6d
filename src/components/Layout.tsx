@@ -8,11 +8,13 @@ import {
   BarChart,
   Lightbulb,
   History,
+  LogOut,
 } from 'lucide-react'
 import {
   SidebarProvider,
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
@@ -21,6 +23,8 @@ import {
   SidebarMenuButton,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
+import { Button } from '@/components/ui/button'
+import { useAuth } from '@/hooks/use-auth'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import useMainStore from '@/stores/main'
@@ -28,6 +32,7 @@ import useMainStore from '@/stores/main'
 export function Layout() {
   const { currentUser } = useMainStore()
   const location = useLocation()
+  const { signOut } = useAuth()
 
   const navItems = [
     {
@@ -95,7 +100,9 @@ export function Layout() {
         <Sidebar className="border-r border-slate-200">
           <SidebarContent>
             <div className="p-6">
-              <h1 className="text-2xl font-bold tracking-tighter text-slate-900">YPO Forum</h1>
+              <h1 className="text-2xl font-bold tracking-tighter text-slate-900">
+                Gestão Fórum YPO
+              </h1>
             </div>
             <SidebarGroup>
               <SidebarGroupLabel className="text-slate-500">Menu Principal</SidebarGroupLabel>
@@ -121,6 +128,16 @@ export function Layout() {
               </SidebarGroupContent>
             </SidebarGroup>
           </SidebarContent>
+          <SidebarFooter className="p-4 border-t border-slate-200">
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={signOut}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Sair
+            </Button>
+          </SidebarFooter>
         </Sidebar>
 
         <div className="flex flex-1 flex-col overflow-hidden">

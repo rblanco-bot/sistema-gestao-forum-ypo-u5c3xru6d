@@ -1,17 +1,23 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import {
   Calendar,
-  CheckCircle2,
-  ListTodo,
-  Wallet,
   AlertTriangle,
   Database,
   Plus,
   RefreshCw,
   Loader2,
+  MoreVertical,
+  Pencil,
+  Trash2,
 } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -19,36 +25,60 @@ import { useAuth } from '@/hooks/use-auth'
 import { useRealtime } from '@/hooks/use-realtime'
 import pb from '@/lib/pocketbase/client'
 import type { RecordModel } from 'pocketbase'
-
-import useMainStore from '@/stores/main'
-import useAttendanceStore from '@/stores/useAttendanceStore'
-
-// Fallback mocks to prevent missing module errors
-const MEETINGS: any[] = []
-const PARKING_LOT: any[] = []
-const FINANCE_TRANSACTIONS: any[] = []
-const MEMBERS: any[] = []
-
-const AttendanceDashboard = () => (
-  <Card className="shadow-sm">
-    <CardHeader>
-      <CardTitle className="text-lg">Frequência</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <p className="text-sm text-slate-500">Módulo de frequência em desenvolvimento.</p>
-    </CardContent>
-  </Card>
-)
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { useToast } from '@/hooks/use-toast'
 
 export default function Index() {
   const { user } = useAuth()
-  const { currentUser } = useMainStore()
-  const { records } = useAttendanceStore()
+  const { toast } = useToast()
 
   const [dbRecords, setDbRecords] = useState<RecordModel[]>([])
   const [isDbLoading, setIsDbLoading] = useState(true)
   const [dbError, setDbError] = useState<string | null>(null)
-  const [isCreating, setIsCreating] = useState(false)
+
+  // Dialog States
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+
+  const [selectedRecord, setSelectedRecord] = useState<RecordModel | null>(null)
+
+  // Form States
+  const [formData, setFormData] = useState({ title: '', description: '', status: 'Agendada' })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const loadBaseData = async (showLoading = true) => {
     try {
@@ -74,22 +104,79 @@ export default function Index() {
     loadBaseData(false)
   })
 
-  const handleCreateRecord = async () => {
+  const resetForm = () => {
+    setFormData({ title: '', description: '', status: 'Agendada' })
+    setSelectedRecord(null)
+  }
+
+  const handleCreate = async () => {
+    if (!formData.title.trim()) {
+      toast({ title: 'Erro', description: 'O título é obrigatório.', variant: 'destructive' })
+      return
+    }
     try {
-      setIsCreating(true)
-      await pb.collection('basereuniaoypo').create({
-        title: 'Nova Reunião ' + new Date().toLocaleDateString('pt-BR'),
-        status: 'Rascunho',
-      })
+      setIsSubmitting(true)
+      await pb.collection('basereuniaoypo').create(formData)
+      toast({ title: 'Sucesso', description: 'Reunião criada com sucesso.' })
+      setIsCreateOpen(false)
+      resetForm()
     } catch (err: any) {
-      console.error('Failed to create basereuniaoypo record:', err)
-      setDbError(err?.message || 'Erro ao criar o registro.')
+      toast({ title: 'Erro ao criar', description: err.message, variant: 'destructive' })
     } finally {
-      setIsCreating(false)
+      setIsSubmitting(false)
     }
   }
 
-  const userName = user?.name || currentUser?.name?.split(' ')[0] || 'Usuário'
+  const handleEdit = async () => {
+    if (!selectedRecord) return
+    if (!formData.title.trim()) {
+      toast({ title: 'Erro', description: 'O título é obrigatório.', variant: 'destructive' })
+      return
+    }
+    try {
+      setIsSubmitting(true)
+      await pb.collection('basereuniaoypo').update(selectedRecord.id, formData)
+      toast({ title: 'Sucesso', description: 'Reunião atualizada com sucesso.' })
+      setIsEditOpen(false)
+      resetForm()
+    } catch (err: any) {
+      toast({ title: 'Erro ao atualizar', description: err.message, variant: 'destructive' })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!selectedRecord) return
+    try {
+      setIsSubmitting(true)
+      await pb.collection('basereuniaoypo').delete(selectedRecord.id)
+      toast({ title: 'Sucesso', description: 'Reunião excluída com sucesso.' })
+      setIsDeleteOpen(false)
+      resetForm()
+    } catch (err: any) {
+      toast({ title: 'Erro ao excluir', description: err.message, variant: 'destructive' })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const openEdit = (record: RecordModel) => {
+    setSelectedRecord(record)
+    setFormData({
+      title: record.title || '',
+      description: record.description || '',
+      status: record.status || 'Agendada',
+    })
+    setIsEditOpen(true)
+  }
+
+  const openDelete = (record: RecordModel) => {
+    setSelectedRecord(record)
+    setIsDeleteOpen(true)
+  }
+
+  const userName = user?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'Usuário'
 
   if (isDbLoading) {
     return (
@@ -98,14 +185,10 @@ export default function Index() {
           <Skeleton className="h-10 w-64" />
           <Skeleton className="h-4 w-96" />
         </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <Skeleton className="h-[180px] col-span-2 rounded-xl" />
-          <Skeleton className="h-[180px] rounded-xl" />
-          <Skeleton className="h-[180px] rounded-xl" />
-        </div>
-        <div className="grid gap-6 md:grid-cols-2">
-          <Skeleton className="h-[300px] rounded-xl" />
-          <Skeleton className="h-[300px] rounded-xl" />
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <Skeleton className="h-[200px] rounded-xl" />
+          <Skeleton className="h-[200px] rounded-xl" />
+          <Skeleton className="h-[200px] rounded-xl" />
         </div>
       </div>
     )
@@ -136,259 +219,265 @@ export default function Index() {
     )
   }
 
-  if (dbRecords.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 animate-fade-in">
-        <Card className="max-w-md w-full border-dashed border-2 bg-slate-50 shadow-sm">
-          <CardHeader className="text-center pb-2">
-            <div className="mx-auto bg-indigo-100 p-3 rounded-full w-fit mb-4">
-              <Database className="h-8 w-8 text-indigo-600" />
-            </div>
-            <CardTitle className="text-xl">Nenhuma reunião encontrada</CardTitle>
-            <CardDescription className="text-base mt-2">
-              Nenhuma reunião encontrada. Para começar a utilizar o sistema, crie o primeiro
-              registro.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center pt-4 pb-6">
-            <Button
-              size="lg"
-              onClick={handleCreateRecord}
-              disabled={isCreating}
-              className="w-full sm:w-auto"
-            >
-              {isCreating ? (
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              ) : (
-                <Plus className="mr-2 h-5 w-5" />
-              )}
-              Criar Primeiro Registro
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  const safeRecords = records || []
-  const nextMeeting = (MEETINGS || []).find((m) => m.status === 'Agendada')
-  const pastMeetings = (MEETINGS || []).filter((m) => m.status === 'Finalizada').slice(0, 3)
-  const pendingTopics = (PARKING_LOT || []).filter((p) => p.status === 'Pendente').length
-
-  const balance = (FINANCE_TRANSACTIONS || []).reduce((acc, curr) => acc + (curr.value || 0), 0)
-  const currentYear = new Date().getFullYear()
-  const totalFinesValue =
-    safeRecords.filter(
-      (r) =>
-        r.meetingDate &&
-        new Date(r.meetingDate).getFullYear() === currentYear &&
-        r.status === 'atrasado' &&
-        r.delayMinutes > 0 &&
-        r.delayMinutes <= 15,
-    ).length * 500
-
-  const memberAbsences = (MEMBERS || [])
-    .map((member) => {
-      const totalAbsences = safeRecords
-        .filter((r) => r.memberId === member.id)
-        .reduce((acc, curr) => {
-          if (curr.status === 'ausente') return acc + 1
-          if (curr.status === 'parcial') return acc + 0.5
-          return acc
-        }, 0)
-      return { ...member, totalAbsences }
-    })
-    .filter((m) => m.totalAbsences > 2)
-
   return (
-    <div className="space-y-8 animate-fade-in-up">
+    <div className="space-y-8 animate-fade-in-up pb-10">
       <div className="flex flex-col space-y-2">
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Olá, {userName}</h1>
-        <p className="text-slate-500">Aqui está o resumo do seu Fórum YPO hoje.</p>
+        <p className="text-slate-500">Gerencie as reuniões e tópicos do seu Fórum YPO.</p>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-            <Database className="h-5 w-5 text-indigo-500" />
-            Registros Base
+          <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-indigo-500" />
+            Reuniões
           </h2>
-          <Button onClick={handleCreateRecord} disabled={isCreating} size="sm" variant="outline">
-            {isCreating ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Plus className="mr-2 h-4 w-4" />
-            )}
-            Novo Registro
-          </Button>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {dbRecords.map((record) => (
-            <Card
-              key={record.id}
-              className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-slate-700 flex justify-between items-center">
-                  <span className="truncate pr-2" title={record.title}>
-                    {record.title || `Registro #${record.id.slice(0, 5)}`}
-                  </span>
-                  <span className="text-xs font-normal text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full whitespace-nowrap">
-                    {record.status || 'Ativo'}
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 text-sm">
-                  {record.description && (
-                    <p className="text-slate-600 text-xs line-clamp-2 mb-3">{record.description}</p>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Criado em:</span>
-                    <span className="font-medium text-slate-900">
-                      {new Date(record.created).toLocaleDateString('pt-BR')}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Última mod.:</span>
-                    <span className="font-medium text-slate-900">
-                      {new Date(record.updated).toLocaleDateString('pt-BR')}
-                    </span>
-                  </div>
+
+          <Dialog
+            open={isCreateOpen}
+            onOpenChange={(open) => {
+              setIsCreateOpen(open)
+              if (!open) resetForm()
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="mr-2 h-4 w-4" />
+                Nova Reunião
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Criar Nova Reunião</DialogTitle>
+                <DialogDescription>
+                  Preencha os detalhes para agendar uma nova reunião no fórum.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Título <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    placeholder="Ex: Reunião Mensal - Abril"
+                  />
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-
-      {memberAbsences.length > 0 && (
-        <div className="space-y-4">
-          {memberAbsences.map((member) => (
-            <Alert
-              key={member.id}
-              variant="destructive"
-              className="bg-red-50 border-red-200 text-red-800"
-            >
-              <AlertTriangle className="h-4 w-4 text-red-600" />
-              <AlertTitle className="text-red-800 font-semibold">
-                Alerta Crítico de Frequência
-              </AlertTitle>
-              <AlertDescription className="text-red-700 mt-1">
-                O membro <strong>{member.name}</strong> atingiu{' '}
-                <strong>{member.totalAbsences} faltas</strong> e está agora sujeito a uma votação de
-                expulsão.
-              </AlertDescription>
-            </Alert>
-          ))}
-        </div>
-      )}
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="col-span-2 bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-blue-400" /> Próxima Reunião
-            </CardTitle>
-            <CardDescription className="text-slate-300">
-              Prepare-se para o próximo encontro
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {nextMeeting ? (
-              <>
-                <div className="space-y-1">
-                  <p className="text-2xl font-semibold">
-                    {new Date(nextMeeting.date).toLocaleDateString('pt-BR', {
-                      day: '2-digit',
-                      month: 'long',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </p>
-                  <p className="text-sm text-slate-300">
-                    Host: {nextMeeting.host} • Local: {nextMeeting.location}
-                  </p>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Descrição</label>
+                  <Textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Pauta ou detalhes da reunião..."
+                    rows={3}
+                  />
                 </div>
-                {currentUser?.role &&
-                  ['Moderador', 'Vice-Moderador'].includes(currentUser.role) && (
-                    <Button
-                      asChild
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white border-0"
-                    >
-                      <Link to={`/meeting/${nextMeeting.id}`}>Iniciar Reunião</Link>
-                    </Button>
-                  )}
-              </>
-            ) : (
-              <p className="text-slate-300">Nenhuma reunião agendada.</p>
-            )}
-          </CardContent>
-        </Card>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Status</label>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(v) => setFormData({ ...formData, status: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Rascunho">Rascunho</SelectItem>
+                      <SelectItem value="Agendada">Agendada</SelectItem>
+                      <SelectItem value="Em Andamento">Em Andamento</SelectItem>
+                      <SelectItem value="Finalizada">Finalizada</SelectItem>
+                      <SelectItem value="Cancelada">Cancelada</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleCreate} disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Salvar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
 
-        <Card className="shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Caixa do Fórum</CardTitle>
-            <Wallet className="h-4 w-4 text-emerald-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-slate-900">
-              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                balance + totalFinesValue,
-              )}
+        {dbRecords.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50">
+            <div className="bg-indigo-100 p-3 rounded-full mb-4">
+              <Database className="h-8 w-8 text-indigo-600" />
             </div>
-            <p className="text-xs text-slate-500 mt-1">
-              Inclui{' '}
-              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                totalFinesValue,
-              )}{' '}
-              em multas
+            <h3 className="text-lg font-semibold text-slate-900 mb-1">
+              Nenhuma reunião encontrada
+            </h3>
+            <p className="text-sm text-slate-500 text-center max-w-md mb-6">
+              Você ainda não possui nenhuma reunião registrada. Clique no botão acima para criar a
+              primeira.
             </p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Parking Lot</CardTitle>
-            <ListTodo className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-slate-900">{pendingTopics}</div>
-            <p className="text-xs text-slate-500 mt-1">Tópicos pendentes</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <AttendanceDashboard />
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-blue-500" /> Atas Recentes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {pastMeetings.map((meeting) => (
-                <div
-                  key={meeting.id}
-                  className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
-                >
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-slate-900">
-                      {new Date(meeting.date).toLocaleDateString('pt-BR')}
-                    </p>
-                    <p className="text-xs text-slate-500">Host: {meeting.host}</p>
+            <Button onClick={() => setIsCreateOpen(true)} variant="outline">
+              <Plus className="mr-2 h-4 w-4" /> Criar Primeira Reunião
+            </Button>
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {dbRecords.map((record) => (
+              <Card
+                key={record.id}
+                className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow relative group flex flex-col"
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start gap-4">
+                    <CardTitle className="text-base font-semibold text-slate-800 leading-tight">
+                      {record.title || `Registro #${record.id.slice(0, 5)}`}
+                    </CardTitle>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 -mr-2 -mt-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                        >
+                          <MoreVertical className="h-4 w-4 text-slate-500" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEdit(record)}>
+                          <Pencil className="mr-2 h-4 w-4" /> Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => openDelete(record)}
+                          className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link to="/minutes">Ver Resumo</Link>
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                  <CardDescription className="flex items-center mt-1.5">
+                    <span
+                      className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${
+                        record.status === 'Agendada'
+                          ? 'bg-blue-100 text-blue-700'
+                          : record.status === 'Finalizada'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : record.status === 'Em Andamento'
+                              ? 'bg-amber-100 text-amber-700'
+                              : record.status === 'Cancelada'
+                                ? 'bg-red-100 text-red-700'
+                                : 'bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      {record.status || 'Sem status'}
+                    </span>
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex-1">
+                  <p className="text-sm text-slate-600 line-clamp-3 min-h-[60px]">
+                    {record.description || (
+                      <span className="text-slate-400 italic">Sem descrição fornecida.</span>
+                    )}
+                  </p>
+                </CardContent>
+                <CardFooter className="pt-4 border-t border-slate-100 text-xs text-slate-500 flex justify-between shrink-0">
+                  <span>Criado: {new Date(record.created).toLocaleDateString('pt-BR')}</span>
+                  <span>Modificado: {new Date(record.updated).toLocaleDateString('pt-BR')}</span>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog
+        open={isEditOpen}
+        onOpenChange={(open) => {
+          setIsEditOpen(open)
+          if (!open) resetForm()
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Reunião</DialogTitle>
+            <DialogDescription>Atualize os detalhes da reunião selecionada.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Título <span className="text-red-500">*</span>
+              </label>
+              <Input
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Descrição</label>
+              <Textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Status</label>
+              <Select
+                value={formData.status}
+                onValueChange={(v) => setFormData({ ...formData, status: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Rascunho">Rascunho</SelectItem>
+                  <SelectItem value="Agendada">Agendada</SelectItem>
+                  <SelectItem value="Em Andamento">Em Andamento</SelectItem>
+                  <SelectItem value="Finalizada">Finalizada</SelectItem>
+                  <SelectItem value="Cancelada">Cancelada</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleEdit} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Salvar Alterações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Reunião</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a reunião "{selectedRecord?.title}"? Esta ação não pode
+              ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                handleDelete()
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
