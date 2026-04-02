@@ -1,16 +1,101 @@
-import { Link } from 'react-router-dom'
-import { Calendar, CheckCircle2, ListTodo, Wallet, AlertTriangle } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Link, Navigate } from 'react-router-dom'
+import {
+  Calendar,
+  CheckCircle2,
+  ListTodo,
+  Wallet,
+  AlertTriangle,
+  Database,
+  Plus,
+  RefreshCw,
+} from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useAuth } from '@/hooks/use-auth'
+import { useRealtime } from '@/hooks/use-realtime'
+import pb from '@/lib/pocketbase/client'
+import type { RecordModel } from 'pocketbase'
+
 import useMainStore from '@/stores/main'
 import { MEETINGS, PARKING_LOT, FINANCE_TRANSACTIONS, MEMBERS } from '@/lib/mock'
 import { AttendanceDashboard } from '@/components/AttendanceDashboard'
 import useAttendanceStore from '@/stores/useAttendanceStore'
 
 export default function Index() {
+  const { user, loading: authLoading } = useAuth()
   const { currentUser } = useMainStore()
+
+  const [dbRecords, setDbRecords] = useState<RecordModel[]>([])
+  const [isDbLoading, setIsDbLoading] = useState(true)
+  const [dbError, setDbError] = useState<string | null>(null)
+  const [isCreating, setIsCreating] = useState(false)
+
+  const loadBaseData = async () => {
+    try {
+      setIsDbLoading(true)
+      setDbError(null)
+      const records = await pb.collection('basereuniaoypo').getFullList({
+        sort: '-created',
+      })
+      setDbRecords(records)
+    } catch (err: any) {
+      setDbError(err?.message || 'Erro ao carregar os dados base do fórum.')
+    } finally {
+      setIsDbLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (pb.authStore.isValid) {
+      loadBaseData()
+    }
+  }, [])
+
+  useRealtime('basereuniaoypo', () => {
+    if (pb.authStore.isValid) {
+      loadBaseData()
+    }
+  })
+
+  const handleCreateRecord = async () => {
+    try {
+      setIsCreating(true)
+      await pb.collection('basereuniaoypo').create({})
+      // The realtime hook will automatically refresh the list
+    } catch (err: any) {
+      setDbError(err?.message || 'Erro ao criar o registro.')
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  // Verification & Loading Experience
+  if (authLoading) {
+    return (
+      <div className="space-y-8 animate-pulse">
+        <div className="space-y-2">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-4 w-96" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <Skeleton className="h-[180px] col-span-2 rounded-xl" />
+          <Skeleton className="h-[180px] rounded-xl" />
+          <Skeleton className="h-[180px] rounded-xl" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Skeleton className="h-[300px] rounded-xl" />
+          <Skeleton className="h-[300px] rounded-xl" />
+        </div>
+      </div>
+    )
+  }
+
+  if (!pb.authStore.isValid || !user) {
+    return <Navigate to="/login" replace />
+  }
 
   const nextMeeting = MEETINGS.find((m) => m.status === 'Agendada')
   const pastMeetings = MEETINGS.filter((m) => m.status === 'Finalizada').slice(0, 3)
@@ -19,7 +104,6 @@ export default function Index() {
   const { records } = useAttendanceStore()
 
   const balance = FINANCE_TRANSACTIONS.reduce((acc, curr) => acc + curr.value, 0)
-
   const currentYear = new Date().getFullYear()
   const totalFinesValue =
     records.filter(
@@ -40,13 +124,88 @@ export default function Index() {
     return { ...member, totalAbsences }
   }).filter((m) => m.totalAbsences > 2)
 
+  const userName = user.name || currentUser?.name?.split(' ')[0] || 'Usuário'
+
   return (
     <div className="space-y-8 animate-fade-in-up">
       <div className="flex flex-col space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          Olá, {currentUser.name.split(' ')[0]}
-        </h1>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Olá, {userName}</h1>
         <p className="text-slate-500">Aqui está o resumo do seu Fórum YPO hoje.</p>
+      </div>
+
+      <div className="w-full">
+        {isDbLoading ? (
+          <Skeleton className="h-[120px] w-full rounded-xl" />
+        ) : dbError ? (
+          <Alert variant="destructive" className="bg-red-50 border-red-200">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Erro de Conexão</AlertTitle>
+            <AlertDescription className="mt-2 flex flex-col gap-3">
+              <p>{dbError}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadBaseData}
+                className="w-fit bg-white text-slate-900 hover:bg-slate-100 border-red-200"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" /> Tentar Novamente
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : dbRecords.length === 0 ? (
+          <Card className="border-dashed border-2 bg-slate-50">
+            <CardContent className="flex flex-col items-center justify-center p-8 text-center space-y-4">
+              <Database className="h-10 w-10 text-slate-400" />
+              <div className="space-y-1">
+                <h3 className="text-lg font-semibold text-slate-900">Nenhum dado encontrado</h3>
+                <p className="text-sm text-slate-500 max-w-sm">
+                  O seu fórum ainda não possui registros na base principal. Crie o primeiro registro
+                  para começar.
+                </p>
+              </div>
+              <Button onClick={handleCreateRecord} disabled={isCreating}>
+                {isCreating ? (
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="mr-2 h-4 w-4" />
+                )}
+                Criar Primeiro Registro
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="bg-emerald-50 border-emerald-100 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-emerald-800 flex items-center gap-2">
+                <Database className="h-4 w-4" />
+                Status da Base do Fórum
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-2xl font-bold text-emerald-900">{dbRecords.length}</p>
+                  <p className="text-xs text-emerald-600 mt-1">Registros ativos sincronizados</p>
+                </div>
+                <div className="text-right text-xs text-emerald-600">
+                  <p>Última atualização:</p>
+                  <p className="font-medium">
+                    {new Date(dbRecords[0].updated || dbRecords[0].created).toLocaleDateString(
+                      'pt-BR',
+                      {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      },
+                    )}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {memberAbsences.length > 0 && (
@@ -99,7 +258,10 @@ export default function Index() {
                   </p>
                 </div>
                 {['Moderador', 'Vice-Moderador'].includes(currentUser.role) && (
-                  <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                  <Button
+                    asChild
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white border-0"
+                  >
                     <Link to={`/meeting/${nextMeeting.id}`}>Iniciar Reunião</Link>
                   </Button>
                 )}
