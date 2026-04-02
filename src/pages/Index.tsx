@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import {
   Calendar,
   CheckCircle2,
@@ -9,6 +9,7 @@ import {
   Database,
   Plus,
   RefreshCw,
+  Loader2,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -25,48 +26,42 @@ import { AttendanceDashboard } from '@/components/AttendanceDashboard'
 import useAttendanceStore from '@/stores/useAttendanceStore'
 
 export default function Index() {
-  const { user, loading: authLoading } = useAuth()
+  const { user } = useAuth()
   const { currentUser } = useMainStore()
+  const { records } = useAttendanceStore()
 
   const [dbRecords, setDbRecords] = useState<RecordModel[]>([])
   const [isDbLoading, setIsDbLoading] = useState(true)
   const [dbError, setDbError] = useState<string | null>(null)
   const [isCreating, setIsCreating] = useState(false)
 
-  const { records } = useAttendanceStore()
-
-  const loadBaseData = async () => {
+  const loadBaseData = async (showLoading = true) => {
     try {
-      setIsDbLoading(true)
+      if (showLoading) setIsDbLoading(true)
       setDbError(null)
-      const records = await pb.collection('basereuniaoypo').getFullList({
+      const data = await pb.collection('basereuniaoypo').getFullList({
         sort: '-created',
       })
-      setDbRecords(records)
+      setDbRecords(data)
     } catch (err: any) {
-      setDbError(err?.message || 'Erro ao carregar os dados base do fórum.')
+      setDbError(err?.message || 'Erro de conexão ou permissão ao acessar os dados.')
     } finally {
-      setIsDbLoading(false)
+      if (showLoading) setIsDbLoading(false)
     }
   }
 
   useEffect(() => {
-    if (pb.authStore.isValid) {
-      loadBaseData()
-    }
+    loadBaseData(true)
   }, [])
 
   useRealtime('basereuniaoypo', () => {
-    if (pb.authStore.isValid) {
-      loadBaseData()
-    }
+    loadBaseData(false)
   })
 
   const handleCreateRecord = async () => {
     try {
       setIsCreating(true)
       await pb.collection('basereuniaoypo').create({})
-      // The realtime hook will automatically refresh the list
     } catch (err: any) {
       setDbError(err?.message || 'Erro ao criar o registro.')
     } finally {
@@ -74,10 +69,11 @@ export default function Index() {
     }
   }
 
-  // Verification & Loading Experience
-  if (authLoading) {
+  const userName = user?.name || currentUser?.name?.split(' ')[0] || 'Usuário'
+
+  if (isDbLoading) {
     return (
-      <div className="space-y-8 animate-pulse">
+      <div className="space-y-8 animate-fade-in">
         <div className="space-y-2">
           <Skeleton className="h-10 w-64" />
           <Skeleton className="h-4 w-96" />
@@ -95,8 +91,56 @@ export default function Index() {
     )
   }
 
-  if (!pb.authStore.isValid || !user) {
-    return <Navigate to="/login" replace />
+  if (dbError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4 animate-fade-in">
+        <AlertTriangle className="h-12 w-12 text-red-500" />
+        <h2 className="text-2xl font-bold text-slate-900">Falha ao carregar dados</h2>
+        <p className="text-slate-500 max-w-md text-center">
+          Ocorreu um erro ao tentar conectar com a nuvem ou você não tem as permissões necessárias.
+        </p>
+        <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-2 rounded-md text-sm max-w-md break-words text-center">
+          {dbError}
+        </div>
+        <Button onClick={() => loadBaseData(true)} className="mt-4" variant="outline">
+          <RefreshCw className="mr-2 h-4 w-4" /> Recarregar Página
+        </Button>
+      </div>
+    )
+  }
+
+  if (dbRecords.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 animate-fade-in">
+        <Card className="max-w-md w-full border-dashed border-2 bg-slate-50 shadow-sm">
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto bg-indigo-100 p-3 rounded-full w-fit mb-4">
+              <Database className="h-8 w-8 text-indigo-600" />
+            </div>
+            <CardTitle className="text-xl">Bem-vindo ao Sistema</CardTitle>
+            <CardDescription className="text-base mt-2">
+              Nenhum registro base encontrado. Para começar a utilizar o sistema do Fórum YPO, crie
+              o primeiro registro.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center pt-4 pb-6">
+            <Button
+              size="lg"
+              onClick={handleCreateRecord}
+              disabled={isCreating}
+              className="w-full sm:w-auto"
+            >
+              {isCreating ? (
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              ) : (
+                <Plus className="mr-2 h-5 w-5" />
+              )}
+              Criar Primeiro Registro
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   const nextMeeting = MEETINGS.find((m) => m.status === 'Agendada')
@@ -115,16 +159,15 @@ export default function Index() {
     ).length * 500
 
   const memberAbsences = MEMBERS.map((member) => {
-    const memberRecords = records.filter((r) => r.memberId === member.id)
-    const totalAbsences = memberRecords.reduce((acc, curr) => {
-      if (curr.status === 'ausente') return acc + 1
-      if (curr.status === 'parcial') return acc + 0.5
-      return acc
-    }, 0)
+    const totalAbsences = records
+      .filter((r) => r.memberId === member.id)
+      .reduce((acc, curr) => {
+        if (curr.status === 'ausente') return acc + 1
+        if (curr.status === 'parcial') return acc + 0.5
+        return acc
+      }, 0)
     return { ...member, totalAbsences }
   }).filter((m) => m.totalAbsences > 2)
-
-  const userName = user.name || currentUser?.name?.split(' ')[0] || 'Usuário'
 
   return (
     <div className="space-y-8 animate-fade-in-up">
@@ -133,102 +176,54 @@ export default function Index() {
         <p className="text-slate-500">Aqui está o resumo do seu Fórum YPO hoje.</p>
       </div>
 
-      <div className="w-full">
-        {isDbLoading ? (
-          <Skeleton className="h-[120px] w-full rounded-xl" />
-        ) : dbError ? (
-          <Alert variant="destructive" className="bg-red-50 border-red-200">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Erro de Conexão</AlertTitle>
-            <AlertDescription className="mt-2 flex flex-col gap-3">
-              <p>{dbError}</p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={loadBaseData}
-                className="w-fit bg-white text-slate-900 hover:bg-slate-100 border-red-200"
-              >
-                <RefreshCw className="mr-2 h-4 w-4" /> Tentar Novamente
-              </Button>
-            </AlertDescription>
-          </Alert>
-        ) : dbRecords.length === 0 ? (
-          <Card className="border-dashed border-2 bg-slate-50">
-            <CardContent className="flex flex-col items-center justify-center p-8 text-center space-y-4">
-              <Database className="h-10 w-10 text-slate-400" />
-              <div className="space-y-1">
-                <h3 className="text-lg font-semibold text-slate-900">Nenhum dado encontrado</h3>
-                <p className="text-sm text-slate-500 max-w-sm">
-                  O seu fórum ainda não possui registros na base principal. Crie o primeiro registro
-                  para começar.
-                </p>
-              </div>
-              <Button onClick={handleCreateRecord} disabled={isCreating}>
-                {isCreating ? (
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Plus className="mr-2 h-4 w-4" />
-                )}
-                Criar Primeiro Registro
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                <Database className="h-5 w-5 text-indigo-500" />
-                Registros Base
-              </h2>
-              <Button
-                onClick={handleCreateRecord}
-                disabled={isCreating}
-                size="sm"
-                variant="outline"
-              >
-                {isCreating ? (
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Plus className="mr-2 h-4 w-4" />
-                )}
-                Novo Registro
-              </Button>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {dbRecords.map((record) => (
-                <Card
-                  key={record.id}
-                  className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow"
-                >
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-slate-700 flex justify-between items-center">
-                      <span className="truncate">Registro #{record.id.slice(0, 5)}</span>
-                      <span className="text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
-                        Ativo
-                      </span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Criado em:</span>
-                        <span className="font-medium text-slate-900">
-                          {new Date(record.created).toLocaleDateString('pt-BR')}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Última mod.:</span>
-                        <span className="font-medium text-slate-900">
-                          {new Date(record.updated).toLocaleDateString('pt-BR')}
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+            <Database className="h-5 w-5 text-indigo-500" />
+            Registros Base
+          </h2>
+          <Button onClick={handleCreateRecord} disabled={isCreating} size="sm" variant="outline">
+            {isCreating ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="mr-2 h-4 w-4" />
+            )}
+            Novo Registro
+          </Button>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {dbRecords.map((record) => (
+            <Card
+              key={record.id}
+              className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow"
+            >
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-slate-700 flex justify-between items-center">
+                  <span className="truncate">Registro #{record.id.slice(0, 5)}</span>
+                  <span className="text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                    Ativo
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Criado em:</span>
+                    <span className="font-medium text-slate-900">
+                      {new Date(record.created).toLocaleDateString('pt-BR')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Última mod.:</span>
+                    <span className="font-medium text-slate-900">
+                      {new Date(record.updated).toLocaleDateString('pt-BR')}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
 
       {memberAbsences.length > 0 && (
@@ -257,8 +252,7 @@ export default function Index() {
         <Card className="col-span-2 bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-blue-400" />
-              Próxima Reunião
+              <Calendar className="h-5 w-5 text-blue-400" /> Próxima Reunião
             </CardTitle>
             <CardDescription className="text-slate-300">
               Prepare-se para o próximo encontro
@@ -333,8 +327,7 @@ export default function Index() {
         <Card className="shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-blue-500" />
-              Atas Recentes
+              <CheckCircle2 className="h-5 w-5 text-blue-500" /> Atas Recentes
             </CardTitle>
           </CardHeader>
           <CardContent>
