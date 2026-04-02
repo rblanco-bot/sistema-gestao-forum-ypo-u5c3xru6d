@@ -174,37 +174,60 @@ export default function Index() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="bg-emerald-50 border-emerald-100 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-emerald-800 flex items-center gap-2">
-                <Database className="h-4 w-4" />
-                Status da Base do Fórum
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-2xl font-bold text-emerald-900">{dbRecords.length}</p>
-                  <p className="text-xs text-emerald-600 mt-1">Registros ativos sincronizados</p>
-                </div>
-                <div className="text-right text-xs text-emerald-600">
-                  <p>Última atualização:</p>
-                  <p className="font-medium">
-                    {new Date(dbRecords[0].updated || dbRecords[0].created).toLocaleDateString(
-                      'pt-BR',
-                      {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      },
-                    )}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                <Database className="h-5 w-5 text-indigo-500" />
+                Registros Base
+              </h2>
+              <Button
+                onClick={handleCreateRecord}
+                disabled={isCreating}
+                size="sm"
+                variant="outline"
+              >
+                {isCreating ? (
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="mr-2 h-4 w-4" />
+                )}
+                Novo Registro
+              </Button>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {dbRecords.map((record) => (
+                <Card
+                  key={record.id}
+                  className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-slate-700 flex justify-between items-center">
+                      <span className="truncate">Registro #{record.id.slice(0, 5)}</span>
+                      <span className="text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                        Ativo
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Criado em:</span>
+                        <span className="font-medium text-slate-900">
+                          {new Date(record.created).toLocaleDateString('pt-BR')}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Última mod.:</span>
+                        <span className="font-medium text-slate-900">
+                          {new Date(record.updated).toLocaleDateString('pt-BR')}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 

@@ -28,51 +28,54 @@ import { HistoryProvider } from './stores/useHistoryStore'
 import { AuthProvider } from './hooks/use-auth'
 import Login from './pages/Login'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 const App = () => (
-  <AuthProvider>
-    <MainProvider>
-      <AttendanceProvider>
-        <HistoryProvider>
-          <MeetingProvider>
-            <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
-              <TooltipProvider>
-                <Toaster />
-                <Sonner />
-                <Routes>
-                  <Route path="/login" element={<Login />} />
+  <ErrorBoundary>
+    <AuthProvider>
+      <MainProvider>
+        <AttendanceProvider>
+          <HistoryProvider>
+            <MeetingProvider>
+              <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
+                <TooltipProvider>
+                  <Toaster />
+                  <Sonner />
+                  <Routes>
+                    <Route path="/login" element={<Login />} />
 
-                  <Route element={<ProtectedRoute />}>
-                    <Route element={<Layout />}>
-                      <Route path="/" element={<Index />} />
-                      <Route path="/members" element={<Members />} />
-                      <Route path="/agenda" element={<Agenda />} />
-                      <Route path="/minutes" element={<Minutes />} />
-                      <Route path="/parking-lot" element={<ParkingLot />} />
-                      <Route path="/finance" element={<Finance />} />
-                      <Route path="/resources" element={<Resources />} />
-                      <Route path="/history" element={<History />} />
+                    <Route element={<ProtectedRoute />}>
+                      <Route element={<Layout />}>
+                        <Route path="/" element={<Index />} />
+                        <Route path="/members" element={<Members />} />
+                        <Route path="/agenda" element={<Agenda />} />
+                        <Route path="/minutes" element={<Minutes />} />
+                        <Route path="/parking-lot" element={<ParkingLot />} />
+                        <Route path="/finance" element={<Finance />} />
+                        <Route path="/resources" element={<Resources />} />
+                        <Route path="/history" element={<History />} />
+                      </Route>
+
+                      <Route path="/meeting/:id" element={<MeetingLayout />}>
+                        <Route index element={<Navigate to="step1" replace />} />
+                        <Route path="step1" element={<Step1Opening />} />
+                        <Route path="step2" element={<Step2Updates />} />
+                        <Route path="step3" element={<Step3Selection />} />
+                        <Route path="step4" element={<Step4DeepDive />} />
+                        <Route path="step5" element={<Step5Housekeeping />} />
+                      </Route>
                     </Route>
 
-                    <Route path="/meeting/:id" element={<MeetingLayout />}>
-                      <Route index element={<Navigate to="step1" replace />} />
-                      <Route path="step1" element={<Step1Opening />} />
-                      <Route path="step2" element={<Step2Updates />} />
-                      <Route path="step3" element={<Step3Selection />} />
-                      <Route path="step4" element={<Step4DeepDive />} />
-                      <Route path="step5" element={<Step5Housekeeping />} />
-                    </Route>
-                  </Route>
-
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </TooltipProvider>
-            </BrowserRouter>
-          </MeetingProvider>
-        </HistoryProvider>
-      </AttendanceProvider>
-    </MainProvider>
-  </AuthProvider>
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </TooltipProvider>
+              </BrowserRouter>
+            </MeetingProvider>
+          </HistoryProvider>
+        </AttendanceProvider>
+      </MainProvider>
+    </AuthProvider>
+  </ErrorBoundary>
 )
 
 export default App
