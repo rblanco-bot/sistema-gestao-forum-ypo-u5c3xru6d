@@ -33,6 +33,8 @@ export default function Index() {
   const [dbError, setDbError] = useState<string | null>(null)
   const [isCreating, setIsCreating] = useState(false)
 
+  const { records } = useAttendanceStore()
+
   const loadBaseData = async () => {
     try {
       setIsDbLoading(true)
@@ -100,8 +102,6 @@ export default function Index() {
   const nextMeeting = MEETINGS.find((m) => m.status === 'Agendada')
   const pastMeetings = MEETINGS.filter((m) => m.status === 'Finalizada').slice(0, 3)
   const pendingTopics = PARKING_LOT.filter((p) => p.status === 'Pendente').length
-
-  const { records } = useAttendanceStore()
 
   const balance = FINANCE_TRANSACTIONS.reduce((acc, curr) => acc + curr.value, 0)
   const currentYear = new Date().getFullYear()
