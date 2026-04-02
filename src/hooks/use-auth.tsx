@@ -27,6 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
           await pb.collection('users').authRefresh()
         } catch (error) {
+          console.error('Auth refresh failed:', error)
           pb.authStore.clear()
         }
       }
@@ -50,6 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await pb.collection('users').authWithPassword(email, password)
       return { error: null }
     } catch (error) {
+      console.error('Sign up error:', error)
       return { error }
     }
   }
@@ -59,6 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await pb.collection('users').authWithPassword(email, password)
       return { error: null }
     } catch (error) {
+      console.error('Sign in error:', error)
       return { error }
     }
   }

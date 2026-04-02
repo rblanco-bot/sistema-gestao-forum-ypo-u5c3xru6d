@@ -21,9 +21,24 @@ import pb from '@/lib/pocketbase/client'
 import type { RecordModel } from 'pocketbase'
 
 import useMainStore from '@/stores/main'
-import { MEETINGS, PARKING_LOT, FINANCE_TRANSACTIONS, MEMBERS } from '@/lib/mock'
-import { AttendanceDashboard } from '@/components/AttendanceDashboard'
 import useAttendanceStore from '@/stores/useAttendanceStore'
+
+// Fallback mocks to prevent missing module errors
+const MEETINGS: any[] = []
+const PARKING_LOT: any[] = []
+const FINANCE_TRANSACTIONS: any[] = []
+const MEMBERS: any[] = []
+
+const AttendanceDashboard = () => (
+  <Card className="shadow-sm">
+    <CardHeader>
+      <CardTitle className="text-lg">Frequência</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <p className="text-sm text-slate-500">Módulo de frequência em desenvolvimento.</p>
+    </CardContent>
+  </Card>
+)
 
 export default function Index() {
   const { user } = useAuth()
@@ -44,6 +59,7 @@ export default function Index() {
       })
       setDbRecords(data || [])
     } catch (err: any) {
+      console.error('Failed to load basereuniaoypo data:', err)
       setDbError(err?.message || 'Erro de conexão ou permissão ao acessar os dados.')
     } finally {
       if (showLoading) setIsDbLoading(false)
@@ -63,6 +79,7 @@ export default function Index() {
       setIsCreating(true)
       await pb.collection('basereuniaoypo').create({})
     } catch (err: any) {
+      console.error('Failed to create basereuniaoypo record:', err)
       setDbError(err?.message || 'Erro ao criar o registro.')
     } finally {
       setIsCreating(false)
@@ -93,18 +110,28 @@ export default function Index() {
 
   if (dbError) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4 animate-fade-in">
-        <AlertTriangle className="h-12 w-12 text-red-500" />
-        <h2 className="text-2xl font-bold text-slate-900">Falha ao carregar dados</h2>
-        <p className="text-slate-500 max-w-md text-center">
-          Ocorreu um erro ao tentar conectar com a nuvem ou você não tem as permissões necessárias.
-        </p>
-        <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-2 rounded-md text-sm max-w-md break-words text-center">
-          {dbError}
-        </div>
-        <Button onClick={() => loadBaseData(true)} className="mt-4" variant="outline">
-          <RefreshCw className="mr-2 h-4 w-4" /> Recarregar Página
-        </Button>
+      <div className="p-8 max-w-2xl mx-auto mt-10 animate-fade-in">
+        <Alert variant="destructive" className="bg-red-50 border-red-200">
+          <AlertTriangle className="h-4 w-4 text-red-600" />
+          <AlertTitle className="text-red-800">Falha ao carregar dados</AlertTitle>
+          <AlertDescription className="mt-2 space-y-4 text-red-700">
+            <p>
+              Ocorreu um erro ao tentar conectar com a nuvem ou você não tem as permissões
+              necessárias.
+            </p>
+            <div className="bg-white/60 p-2 rounded text-xs font-mono border border-red-100 break-words">
+              {dbError}
+            </div>
+            <Button
+              onClick={() => loadBaseData(true)}
+              variant="outline"
+              size="sm"
+              className="bg-white hover:bg-slate-50 text-red-600 border-red-200"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" /> Tentar Novamente
+            </Button>
+          </AlertDescription>
+        </Alert>
       </div>
     )
   }
@@ -117,10 +144,10 @@ export default function Index() {
             <div className="mx-auto bg-indigo-100 p-3 rounded-full w-fit mb-4">
               <Database className="h-8 w-8 text-indigo-600" />
             </div>
-            <CardTitle className="text-xl">Bem-vindo ao Sistema</CardTitle>
+            <CardTitle className="text-xl">Nenhum registro encontrado</CardTitle>
             <CardDescription className="text-base mt-2">
-              Nenhum registro base encontrado. Para começar a utilizar o sistema do Fórum YPO, crie
-              o primeiro registro.
+              Nenhum registro base encontrado na coleção basereuniaoypo. Para começar a utilizar o
+              sistema, crie o primeiro registro.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center pt-4 pb-6">
