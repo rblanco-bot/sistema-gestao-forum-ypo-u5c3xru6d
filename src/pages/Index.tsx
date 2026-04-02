@@ -42,7 +42,7 @@ export default function Index() {
       const data = await pb.collection('basereuniaoypo').getFullList({
         sort: '-created',
       })
-      setDbRecords(data)
+      setDbRecords(data || [])
     } catch (err: any) {
       setDbError(err?.message || 'Erro de conexão ou permissão ao acessar os dados.')
     } finally {
@@ -143,31 +143,35 @@ export default function Index() {
     )
   }
 
-  const nextMeeting = MEETINGS.find((m) => m.status === 'Agendada')
-  const pastMeetings = MEETINGS.filter((m) => m.status === 'Finalizada').slice(0, 3)
-  const pendingTopics = PARKING_LOT.filter((p) => p.status === 'Pendente').length
+  const safeRecords = records || []
+  const nextMeeting = (MEETINGS || []).find((m) => m.status === 'Agendada')
+  const pastMeetings = (MEETINGS || []).filter((m) => m.status === 'Finalizada').slice(0, 3)
+  const pendingTopics = (PARKING_LOT || []).filter((p) => p.status === 'Pendente').length
 
-  const balance = FINANCE_TRANSACTIONS.reduce((acc, curr) => acc + curr.value, 0)
+  const balance = (FINANCE_TRANSACTIONS || []).reduce((acc, curr) => acc + (curr.value || 0), 0)
   const currentYear = new Date().getFullYear()
   const totalFinesValue =
-    records.filter(
+    safeRecords.filter(
       (r) =>
+        r.meetingDate &&
         new Date(r.meetingDate).getFullYear() === currentYear &&
         r.status === 'atrasado' &&
         r.delayMinutes > 0 &&
         r.delayMinutes <= 15,
     ).length * 500
 
-  const memberAbsences = MEMBERS.map((member) => {
-    const totalAbsences = records
-      .filter((r) => r.memberId === member.id)
-      .reduce((acc, curr) => {
-        if (curr.status === 'ausente') return acc + 1
-        if (curr.status === 'parcial') return acc + 0.5
-        return acc
-      }, 0)
-    return { ...member, totalAbsences }
-  }).filter((m) => m.totalAbsences > 2)
+  const memberAbsences = (MEMBERS || [])
+    .map((member) => {
+      const totalAbsences = safeRecords
+        .filter((r) => r.memberId === member.id)
+        .reduce((acc, curr) => {
+          if (curr.status === 'ausente') return acc + 1
+          if (curr.status === 'parcial') return acc + 0.5
+          return acc
+        }, 0)
+      return { ...member, totalAbsences }
+    })
+    .filter((m) => m.totalAbsences > 2)
 
   return (
     <div className="space-y-8 animate-fade-in-up">
@@ -274,14 +278,15 @@ export default function Index() {
                     Host: {nextMeeting.host} • Local: {nextMeeting.location}
                   </p>
                 </div>
-                {['Moderador', 'Vice-Moderador'].includes(currentUser.role) && (
-                  <Button
-                    asChild
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white border-0"
-                  >
-                    <Link to={`/meeting/${nextMeeting.id}`}>Iniciar Reunião</Link>
-                  </Button>
-                )}
+                {currentUser?.role &&
+                  ['Moderador', 'Vice-Moderador'].includes(currentUser.role) && (
+                    <Button
+                      asChild
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white border-0"
+                    >
+                      <Link to={`/meeting/${nextMeeting.id}`}>Iniciar Reunião</Link>
+                    </Button>
+                  )}
               </>
             ) : (
               <p className="text-slate-300">Nenhuma reunião agendada.</p>
