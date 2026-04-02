@@ -77,7 +77,10 @@ export default function Index() {
   const handleCreateRecord = async () => {
     try {
       setIsCreating(true)
-      await pb.collection('basereuniaoypo').create({})
+      await pb.collection('basereuniaoypo').create({
+        title: 'Nova Reunião ' + new Date().toLocaleDateString('pt-BR'),
+        status: 'Rascunho',
+      })
     } catch (err: any) {
       console.error('Failed to create basereuniaoypo record:', err)
       setDbError(err?.message || 'Erro ao criar o registro.')
@@ -115,10 +118,7 @@ export default function Index() {
           <AlertTriangle className="h-4 w-4 text-red-600" />
           <AlertTitle className="text-red-800">Falha ao carregar dados</AlertTitle>
           <AlertDescription className="mt-2 space-y-4 text-red-700">
-            <p>
-              Ocorreu um erro ao tentar conectar com a nuvem ou você não tem as permissões
-              necessárias.
-            </p>
+            <p>Erro ao carregar dados. Verifique sua conexão ou permissões.</p>
             <div className="bg-white/60 p-2 rounded text-xs font-mono border border-red-100 break-words">
               {dbError}
             </div>
@@ -144,10 +144,10 @@ export default function Index() {
             <div className="mx-auto bg-indigo-100 p-3 rounded-full w-fit mb-4">
               <Database className="h-8 w-8 text-indigo-600" />
             </div>
-            <CardTitle className="text-xl">Nenhum registro encontrado</CardTitle>
+            <CardTitle className="text-xl">Nenhuma reunião encontrada</CardTitle>
             <CardDescription className="text-base mt-2">
-              Nenhum registro base encontrado na coleção basereuniaoypo. Para começar a utilizar o
-              sistema, crie o primeiro registro.
+              Nenhuma reunião encontrada. Para começar a utilizar o sistema, crie o primeiro
+              registro.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center pt-4 pb-6">
@@ -230,14 +230,19 @@ export default function Index() {
             >
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-slate-700 flex justify-between items-center">
-                  <span className="truncate">Registro #{record.id.slice(0, 5)}</span>
-                  <span className="text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
-                    Ativo
+                  <span className="truncate pr-2" title={record.title}>
+                    {record.title || `Registro #${record.id.slice(0, 5)}`}
+                  </span>
+                  <span className="text-xs font-normal text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full whitespace-nowrap">
+                    {record.status || 'Ativo'}
                   </span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2 text-sm">
+                  {record.description && (
+                    <p className="text-slate-600 text-xs line-clamp-2 mb-3">{record.description}</p>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-slate-500">Criado em:</span>
                     <span className="font-medium text-slate-900">
